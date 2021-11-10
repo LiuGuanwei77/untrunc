@@ -5,8 +5,7 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 # Project name.
-# TODO: Change this line to match your project name when you copy this file.
-project(untrunc VERSION 1.0.0 LANGUAGES CXX)
+project(untrunc VERSION 1.0.0)
 
 set(UNTRUNC_HDRS
     src/AP_AtomDefinitions.h
@@ -14,6 +13,7 @@ set(UNTRUNC_HDRS
     src/codec.h
     src/codecstats.h
     src/file.h
+    src/h264_sps.h
     src/log.h
     src/mp4.h
     src/track.h
@@ -39,6 +39,7 @@ set(UNTRUNC_SRCS
     src/codec_unknown.cpp
     src/codecstats.cpp
     src/file.cpp
+    src/h264_sps.c
     src/log.cpp
     src/main.cpp
     src/mp4.cpp
@@ -52,12 +53,16 @@ endif()
 add_executable(untrunc ${UNTRUNC_SRCS} ${UNTRUNC_HDRS})
 
 find_path(FFMPEG_INCLUDE_DIR libavcodec/avcodec.h)
+find_path(FFMPEG_SOURCE_DIR compat/atomics)
 find_library(AVCODEC_LIBRARY avcodec)
-
 find_library(AVFORMAT_LIBRARY avformat)
-
 find_library(AVUTIL_LIBRARY avutil)
 
-target_include_directories(untrunc PUBLIC ${FFMPEG_INCLUDE_DIR})
-#target_link_directories(untrunc PUBLIC ${FFMPEG_LIBDIR})
+if (MSVC)
+    set(ATOMICS_INCLUDE_DIR "${FFMPEG_SOURCE_DIR}/compat/atomics/win32")
+elseif(MINGW)
+    set(ATOMICS_INCLUDE_DIR "${FFMPEG_SOURCE_DIR}/compat/atomics/gcc")
+endif()
+
+target_include_directories(untrunc PUBLIC ${FFMPEG_INCLUDE_DIR} ${FFMPEG_SOURCE_DIR} ${ATOMICS_INCLUDE_DIR})
 target_link_libraries(untrunc ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY})
