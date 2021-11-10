@@ -13,7 +13,6 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 
 	Match match;
 
-	Log::debug << "context: " << context << std::endl;
 	if(!context)
 		return match;
 
@@ -45,8 +44,7 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 		int got_frame = 0;
 		consumed = context->codec->decode(context, frame, &got_frame, &avp);
 
-        Log::debug << "mp4a: consumed: " << consumed << ", " << AVERROR(EAGAIN) << ", " << AVERROR_EOF << ", " << AVERROR(EINVAL) << "\n";
-
+        
 		if(consumed >= 0) {
 			if(frame->nb_samples > 0)
 				duration = frame->nb_samples;
@@ -88,8 +86,7 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 	match.duration = duration;
 	match.length = consumed;
 
-    Log::debug << "mp4a: duration: " << match.duration << ", length: " << match.length << "\n";
-	/*
+    /*
 	if(match.chances > 0) {
 		//count zeros.
 		int zeros = 0;
