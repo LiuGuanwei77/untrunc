@@ -23,6 +23,10 @@
 #include "atom.h"
 #include "log.h"
 
+#ifdef __GNUC__
+#include <limits>
+#endif  // __GNUC__
+
 #include <map>
 #include <iostream>
 
