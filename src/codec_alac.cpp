@@ -6,7 +6,6 @@
 //#include "avlog.h"
 extern "C" {
 #include <libavcodec/avcodec.h>
-#include <libavcodec/get_bits.h>
 #include <libavformat/avformat.h>
 }
 
@@ -34,6 +33,17 @@ using namespace std;
  * * Anyway without parsing it's very probable that the first 24 bits stay exactly the same.
  * so we need to use the sample as a starting point and add a 2x penalty for every different bit.
  */
+
+typedef struct GetBitContext {
+	const uint8_t *buffer, *buffer_end;
+#if CACHED_BITSTREAM_READER
+	uint64_t cache;
+	unsigned bits_left;
+#endif
+	int index;
+	int size_in_bits;
+	int size_in_bits_plus8;
+} GetBitContext;
 
 typedef struct ALACContext {
 	AVCodecContext *avctx;
