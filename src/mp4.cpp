@@ -81,7 +81,7 @@ static const streambuf* const StdioBufs[] = {
 // Assume that the statuses don't change during the process life-time.
 static const bool StdioTtys[sizeof(StdioBufs)/sizeof(StdioBufs[0])] = {
 		#ifdef _WIN32
-		_isatty(STDIN_FILENO), _isatty(STDOUT_FILENO), _isatty(STDERR_FILENO), _isatty(STDERR_FILENO)
+		static_cast<bool>(_isatty(STDIN_FILENO)), static_cast<bool>(_isatty(STDOUT_FILENO)), static_cast<bool>(_isatty(STDERR_FILENO)), static_cast<bool>(_isatty(STDERR_FILENO))
 		#else
 		(bool)isatty(STDIN_FILENO),  (bool)isatty(STDOUT_FILENO),  (bool)isatty(STDERR_FILENO),  (bool)isatty(STDERR_FILENO)
 		#endif
