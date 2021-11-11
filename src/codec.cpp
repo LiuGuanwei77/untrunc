@@ -103,7 +103,6 @@ bool Codec::InitCodec(AVCodecParameters * codecpar) {
 
 
 Match Codec::match(const unsigned char *start, int maxlength) {
-#if 1
 	if(name == "rtp ") {
 		return rtpMatch(start, maxlength);
 	} else if(name == "avc1") {
@@ -142,15 +141,7 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 	} else { //rtmd
 		return unknownMatch(start, maxlength);
 	}
-#else
-	if (name == "avc1") {
-		return avc1Match(start, maxlength);
 
-	}
-	else if (name == "mp4a") {
-		return mp4aMatch(start, maxlength);
-	}
-#endif
 
 	Log::error << "Unsupported codec: " << name << "\n";
 	return Match();
@@ -158,7 +149,6 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 }
 
 Match Codec::search(const unsigned char *start, int maxlength) {
-#if 1
 	if(name == "apch") {
 		return apchSearch(start, maxlength);
 	} else if(name == "avc1") {
@@ -172,11 +162,7 @@ Match Codec::search(const unsigned char *start, int maxlength) {
 	} else if(name == "fdsc") {
 		return fdscSearch(start, maxlength);
 	}
-#else
-	if (name == "avc1") {
-		return avc1Search(start, maxlength);
-	}
-#endif
+
 	Match match;
 	return match;
 
