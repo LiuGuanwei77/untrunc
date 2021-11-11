@@ -82,18 +82,18 @@ Match Codec::alacMatch(const unsigned char *start, int maxlength) {
 	AVFrame *frame = av_frame_alloc();
 	if(!frame)
 		throw string("Could not create AVFrame");
-	AVPacket avp;
-	av_init_packet(&avp);
-	avp.data = (uint8_t *)start;
-	avp.size = maxlength;
+	AVPacket *avp = av_packet_alloc();
+	avp->data = (uint8_t *)start;
+	avp->size = maxlength;
 	int got_frame = 0;
 	//avcodec_decode_audio4(context, frame, &got_frame, &avp);
-	int consumed = context->codec->decode(context, frame, &got_frame, &avp);
+	int consumed = context->codec->decode(context, frame, &got_frame, avp);
 
 	consumed = (alac->gb.index-1) /8 + 1;
 	Log::debug << "Alac length in bits: " << alac->gb.index << " in bytes: " << consumed << "\n";
 
-	av_packet_unref(&avp);
+	av_packet_unref(avp);
+    av_packet_free(&avp);
 	av_frame_free(&frame);
 
 	if(consumed < 12) {
