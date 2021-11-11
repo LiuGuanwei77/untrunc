@@ -37,12 +37,11 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 		AVFrame *frame = av_frame_alloc();
 		if(!frame)
 			throw string("Could not create AVFrame");
-		AVPacket avp;
-		av_init_packet(&avp);
-		avp.data = (uint8_t *)start;
-		avp.size = maxlength;
+		AVPacket *avp = av_packet_alloc();
+		avp->data = (uint8_t *)start;
+		avp->size = maxlength;
 		int got_frame = 0;
-		consumed = context->codec->decode(context, frame, &got_frame, &avp);
+		consumed = context->codec->decode(context, frame, &got_frame, avp);
 
         
 		if(consumed >= 0) {
@@ -51,9 +50,9 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 			// Flush decoder to receive buffered packets.
 			if(consumed <= 0 || duration <= 0) {
 				got_frame = 0;
-				av_packet_unref(&avp);
+				av_packet_unref(avp);
 				av_frame_unref(frame);
-				int consumed2 = context->codec->decode(context, frame, &got_frame, &avp);
+				int consumed2 = context->codec->decode(context, frame, &got_frame, avp);
 				if(consumed2 >= 0) {
 					if(consumed <= 0)
 						consumed = consumed2;
@@ -62,7 +61,8 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 				}
 			}
 		}
-		av_packet_unref(&avp);
+		av_packet_unref(avp);
+        av_packet_free(&avp);
 		av_frame_free(&frame);
 	}
 
