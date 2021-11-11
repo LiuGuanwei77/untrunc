@@ -53,7 +53,7 @@ endif()
 add_executable(untrunc ${UNTRUNC_SRCS} ${UNTRUNC_HDRS})
 
 find_path(FFMPEG_INCLUDE_DIR libavcodec/avcodec.h)
-find_path(FFMPEG_SOURCE_DIR compat/atomics)
+find_path(FFMPEG_SOURCE_DIR libavcodec/h264dec.h)
 find_library(AVCODEC_LIBRARY avcodec)
 find_library(AVFORMAT_LIBRARY avformat)
 find_library(AVUTIL_LIBRARY avutil)
