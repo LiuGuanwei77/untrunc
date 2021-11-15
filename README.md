@@ -21,7 +21,7 @@ Changes to the original repository:
 3. Build Ffmpeg
    ```bash
    cd ffmpeg
-   ./configure
+   ./configure --enable-shared
    make
    ```
 4. Generate Untrunc's Makefile
@@ -29,7 +29,7 @@ Changes to the original repository:
    cmake -G "Unix Makefiles" -B "unix_build"
    ```
 
-5. Edit unix_build/CMakeCache.txt, set the value of AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR
+5. Edit unix_build/CMakeCache.txt, set the value of variable AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR
 
 6. Build Untrunc
    ```bash
@@ -53,8 +53,10 @@ Changes to the original repository:
    https://trac.ffmpeg.org/wiki/CompilationGuide/MSVC
 
 4. Generate Untrunc's Makefile
+   Open CMake GUI, set the source directory and the build directory.
+   Push "Configure" button.
 
-5. Set the value of AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR
+5. Set the value of variable AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR. Push "Generate" button.
 
 5. Open untrunc.sln with Visual Studio and build
 
