@@ -396,7 +396,28 @@ void Atom::print(int offset) {
 		for(int i = 0; i < entries && i < 10; i++)
 			Log::info << indent << " chunk: " << readInt(12 + i*8) << '\n';
 
-	}
+	} else if (name == string("elst")) {
+          uint8_t version = readUInt8(0);
+          int entries = readInt(4);
+          Log::info << indent << " Edit count: " << entries << '\n';
+          for (int i = 0; i < entries && i < 10; i++) {
+            if (version == 1) {
+              int64_t duration = readInt64(8 + i * 20);
+              int64_t time = readInt64(8 + 8 + i * 20);
+              float rate = readInt(8 + 16 + i * 20) / 65536.0;
+              Log::info << indent << " duration: " << duration
+                        << ", time: " << time << ", rate: " << rate
+                        << '\n';
+            } else {
+              int32_t duration = readInt(8 + i * 12);
+              int32_t time = readInt(8 + 4 + i * 12);
+              float rate = readInt(8 + 8 + i * 12) / 65536.0;
+              Log::info << indent << " duration: " << duration
+                        << ", time: " << time << ", rate: " << rate
+                        << '\n';
+            }
+          }
+    }
 
 	for(unsigned int i = 0; i < children.size(); i++)
 		children[i]->print(offset+1);
