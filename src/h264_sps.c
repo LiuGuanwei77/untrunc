@@ -5,6 +5,11 @@
 
 #include "libavcodec/h264dec.h"
 
+#ifndef _MSC_VER
+#define TRUE 1
+#define FALSE 0
+#endif
+
 void SPS2H264sps(struct H264sps* sps, const SPS* avsps) {
   sps->log2_max_frame_num = avsps->log2_max_frame_num;
   sps->frame_mbs_only_flag = avsps->frame_mbs_only_flag;
