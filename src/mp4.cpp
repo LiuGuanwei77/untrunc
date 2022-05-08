@@ -341,7 +341,7 @@ bool Mp4::makeStreamable(string filename, string output_filename) {
 		Atom *stco = stcos[i];
 		int32_t nchunks = stco->readInt(4); // 4 version, 4 number of entries, 4 entries.
 		for(int j = 0; j < nchunks; ++j) {
-			int64_t pos    = int64_t(8) + 4*j;
+			int64_t pos    = int64_t(8 + 4*j);
 			int64_t offset = stco->readInt(pos) + diff;
 			Log::debug << "O: " << offset << '\n';
 			stco->writeInt(offset, pos);
@@ -599,7 +599,7 @@ void Mp4::analyze(int analyze_track, bool interactive) {
 
 			int64_t offset = chunk.offset - mdat->content_start;
 			for(int k = 0; k < chunk.nsamples; k++) {
-				int64_t size = track.getSize(chunk.first_sample + k);
+				int64_t size = track.getSize((size_t)chunk.first_sample + k);
 				if(track.codec.pcm)
 					size = chunk.size;
 				int64_t extendedsize = std::min(mdat->contentSize() - offset, size + 200000);
@@ -738,7 +738,7 @@ void Mp4::simulate(Mp4::MdatStrategy strategy, int64_t begin) {
 		MatchGroup matches = match(offset, mdat);
 		Match &best = matches[0];
 
-		for(Match m: matches) {
+		for(const Match& m: matches) {
 			Log::debug << "Match for: " << m.id << " (" << codecs[m.id] << ") chances: " << m.chances << " length: " << m.length << "\n";
 		}
 		if(best.chances == 0.0f) {
@@ -1031,7 +1031,7 @@ bool Mp4::repair(string corrupt_filename, Mp4::MdatStrategy strategy, int64_t md
 			memcpy(mdat->version, atom.version, sizeof(mdat->version));
 
 			mdat->file_begin = file.pos();
-			mdat->file_end   = file.length() - file.pos();
+			mdat->file_end   = (int64_t)file.length() - file.pos();
 
 			Log::debug << "MDAT SIZE: " << mdat->file_end - mdat->file_begin << endl;			//mdat->content = file.read(file.length() - file.pos());
 			break;
@@ -1304,6 +1304,7 @@ bool Mp4::repair(string corrupt_filename, Mp4::MdatStrategy strategy, int64_t md
 			track.keyframes.push_back(track.offsets.size());
 
 		track.offsets.push_back(group.offset);
+		
 		if(track.default_size) {
 			//if number of samples per chunk is variable, encode each sample in a different chunk.
 			if(track.default_chunk_nsamples == 0)
