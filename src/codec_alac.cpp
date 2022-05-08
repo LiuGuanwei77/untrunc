@@ -5,8 +5,12 @@
 
 //#include "avlog.h"
 extern "C" {
-#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#if LIBAVFORMAT_VERSION_MAJOR == 58
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+#include <libavcodec/codec_internal.h>
+#endif
 }
 
 #include <iostream>
@@ -87,8 +91,12 @@ Match Codec::alacMatch(const unsigned char *start, int maxlength) {
 	avp->size = maxlength;
 	int got_frame = 0;
 	//avcodec_decode_audio4(context, frame, &got_frame, &avp);
+#if LIBAVFORMAT_VERSION_MAJOR == 58
 	int consumed = context->codec->decode(context, frame, &got_frame, avp);
-
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+	int consumed = ((const FFCodec*)context->codec)->cb.decode(context, frame, &got_frame, avp);
+#endif
+	
 	consumed = (alac->gb.index-1) /8 + 1;
 	Log::debug << "Alac length in bits: " << alac->gb.index << " in bytes: " << consumed << "\n";
 
