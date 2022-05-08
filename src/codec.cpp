@@ -24,6 +24,7 @@ void Codec::clear() {
 	name.clear();
 	// Do not remove the context, as it will be re-used!
 	codec   = NULL;
+	incomplete_text_chunk = false;
 	mask1   = 0;
 	mask0   = 0;
 }
@@ -79,7 +80,7 @@ bool Codec::parse(Atom *trak) {
 }
 
 bool Codec::InitCodec(AVCodecParameters * codecpar) {
-	codec = avcodec_find_decoder(codecpar->codec_id);
+	codec = (AVCodec*)avcodec_find_decoder(codecpar->codec_id);
 	if (!codec) {
 		Log::info << "No codec found for codec id: " << codecpar->codec_id << "\n";
 		return false;
@@ -136,6 +137,8 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		return fdscMatch(start, maxlength);
 	} else if(name == "priv") {
 		return mijdMatch(start, maxlength);
+	} else if (name == "tx3g") {
+		return subtitleMatch(start, maxlength);
 	} else if(pcm) {
 		return pcmMatch(start, maxlength);
 	} else { //rtmd
