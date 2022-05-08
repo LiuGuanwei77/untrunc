@@ -132,7 +132,7 @@ bool Track::parse(Atom* t, AVCodecParameters* codecpar) {
 
   Log::debug << "Track type: " << type << "\n";
 
-  if (type != string("soun") && type != string("vide")) {
+  if (type != string("soun") && type != string("vide") && type != string("sbtl")) {
     Log::info << "Found '" << type << "' track. Might be not supported.\n";
   }
 
@@ -268,7 +268,7 @@ void Track::fixTimes() {
     assert(times.size() > 0);
     while (times.size() < offsets.size())
       times.insert(times.end(), times.begin(), times.end());
-    times.resize(offsets.size());
+      times.resize(offsets.size());
 
     duration = 0;
     for (unsigned int i = 0; i < times.size(); i++)
@@ -287,8 +287,8 @@ void Track::getSampleTimes(Atom* t) {
   int32_t entries = stts->readInt(4);
 
   for (int i = 0; i < entries; i++) {
-    int32_t nsamples = stts->readInt(8 + 8 * i);
-    int32_t time = stts->readInt(12 + 8 * i);
+    int32_t nsamples = stts->readInt(8 + 8 * (int64_t)i);
+    int32_t time = stts->readInt(12 + 8 * (int64_t)i);
     if (entries == 1) {
       default_time = time;
       break;
@@ -323,7 +323,7 @@ void Track::getKeyframes(Atom* t) {
 
   int32_t entries = stss->readInt(4);
   for (int i = 0; i < entries; i++)
-    keyframes.push_back(stss->readInt(8 + 4 * i) - 1);
+    keyframes.push_back(stss->readInt(8 + 4 * (int64_t)i) - 1);
   return;
 }
 
@@ -340,7 +340,7 @@ void Track::getSampleSizes(Atom* t) {
 
   if (default_size == 0) {
     for (int i = 0; i < nsamples; i++)
-      sample_sizes.push_back(stsz->readInt(12 + 4 * i));
+      sample_sizes.push_back(stsz->readInt(12 + 4 * (int64_t)i));
   }
 }
 
@@ -364,10 +364,10 @@ void Track::getChunkOffsets(Atom* t) {
   chunks.resize(nchunks);
   if (stco) {
     for (int i = 0; i < nchunks; i++)
-      chunks[i].offset = stco->readUInt(8 + i * 4);
+      chunks[i].offset = stco->readUInt(8 + (int64_t)i * 4);
   } else {
     for (int i = 0; i < nchunks; i++)
-      chunks[i].offset = co64->readInt64(8 + i * 8);
+      chunks[i].offset = co64->readInt64(8 + (int64_t)i * 8);
   }
   return;
 }
@@ -382,7 +382,7 @@ void Track::getSampleToChunk(Atom* t) {
   vector<int> first_chunks;
   int32_t entries = stsc->readInt(4);
   for (int i = 0; i < entries; i++)
-    first_chunks.push_back(stsc->readInt(8 + 12 * i) - 1);
+    first_chunks.push_back(stsc->readInt(8 + 12 * (int64_t)i) - 1);
 
   // assert(first_chunks.back() == chunks.size());
 
@@ -391,10 +391,10 @@ void Track::getSampleToChunk(Atom* t) {
   int32_t count = 0;
   for (int i = 0; i < entries; i++) {
     int first_chunk = first_chunks[i];
-    int last_chunk = (i == entries - 1) ? chunks.size() : first_chunks[i + 1];
+    int last_chunk = (i == entries - 1) ? chunks.size() : first_chunks[(size_t)i + 1];
     for (int k = first_chunk; k < last_chunk; k++) {
       chunks[k].first_sample = count;
-      chunks[k].nsamples = stsc->readInt(12 + 12 * i);
+      chunks[k].nsamples = stsc->readInt(12 + 12 * (int64_t)i);
       if (default_chunk_nsamples == -1)
         default_chunk_nsamples = chunks[k].nsamples;
       else if (default_chunk_nsamples != chunks[k].nsamples)
@@ -433,16 +433,16 @@ void Track::saveSampleTimes() {
   int nentries = default_time ? 1 : times.size();
   stts->content.resize(4 +             // version
                        4 +             // entries
-                       8 * nentries);  // time table
+                       8 * (size_t)nentries);  // time table
   stts->writeInt(nentries, 4);
   if (default_time) {
     // TODO
     stts->writeInt(nsamples, 8);
     stts->writeInt(default_time, 12);
   } else {
-    for (unsigned int i = 0; i < times.size(); i++) {
-      stts->writeInt(1, 8 + 8 * i);
-      stts->writeInt(times[i], 12 + 8 * i);
+    for (int i = 0; i < times.size(); i++) {
+      stts->writeInt(1, 8 + 8 * (int64_t)i);
+      stts->writeInt(times[i], 12 + 8 * (int64_t)i);
     }
   }
 }
@@ -462,7 +462,7 @@ void Track::saveKeyframes() {
                        4 * keyframes.size());  // time table
   stss->writeInt(keyframes.size(), 4);
   for (unsigned int i = 0; i < keyframes.size(); i++)
-    stss->writeInt(keyframes[i] + 1, 8 + 4 * i);
+    stss->writeInt(keyframes[i] + 1, 8 + 4 * (int64_t)i);
 }
 
 void Track::saveSampleSizes() {
@@ -484,7 +484,7 @@ void Track::saveSampleSizes() {
   } else {
     stsz->writeInt(sample_sizes.size(), 8);
     for (unsigned int i = 0; i < sample_sizes.size(); i++)
-      stsz->writeInt(sample_sizes[i], 12 + 4 * i);
+      stsz->writeInt(sample_sizes[i], 12 + 4 * (int64_t)i);
   }
 }
 
@@ -530,10 +530,10 @@ void Track::saveSampleToChunk() {
                          12 * chunk_sizes.size());  // one sample per chunk.
     stsc->writeInt(chunk_sizes.size(), 4);
     for (int i = 0; i < (int)chunk_sizes.size(); i++) {
-      stsc->writeInt(i + 1, 8 + 12 * i);  // first chunk (1 based)
+      stsc->writeInt(i + 1, 8 + 12 * (int64_t)i);  // first chunk (1 based)
       int chunk_nsamples = chunk_sizes[i] / default_size;
-      stsc->writeInt(chunk_nsamples, 12 + 12 * i);
-      stsc->writeInt(1, 16 + 12 * i);  // id 1 (WHAT IS THIS!)
+      stsc->writeInt(chunk_nsamples, 12 + 12 * (int64_t)i);
+      stsc->writeInt(1, 16 + 12 * (int64_t)i);  // id 1 (WHAT IS THIS!)
     }
   }
 }
@@ -551,7 +551,7 @@ void Track::saveChunkOffsets() {
     stco->writeInt(0, 4);
     stco->writeInt(offsets.size(), 4);
     for (unsigned int i = 0; i < offsets.size(); i++) {
-      stco->writeInt((int32_t)offsets[i], 8 + 4 * i);
+      stco->writeInt((int32_t)offsets[i], 8 + 4 * (int64_t)i);
     }
   }
 }
