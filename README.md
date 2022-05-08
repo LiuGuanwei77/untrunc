@@ -57,7 +57,8 @@ Changes to the original repository:
    Open CMake GUI, set the source directory and the build directory.
    Push "Configure" button.
 
-5. Set the value of variable AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR
+5. Set the value of variable AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR:
+
    Uncompress the binary package and the source code package. 
    Set FFMPEG_INCLUDE_DIR to the directory of the uncompressed binary folder, Set FFMPEG_SOURCE_DIR to the directory of the uncompressed source code folder.
 
