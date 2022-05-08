@@ -43,22 +43,27 @@ Changes to the original repository:
 
    https://cmake.org/download/
 
-2. Clone Ffmpeg's repository
-   ```bash
-   git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
-   ```
+2. Download Ffmpeg's binary package:
 
-3. Build Ffmpeg
+   https://github.com/BtbN/FFmpeg-Builds/releases
 
-   https://trac.ffmpeg.org/wiki/CompilationGuide/MSVC
+3. Download corresponding Ffmpeg's source code:
+
+   https://ffmpeg.org/download.html
+
+   Go to the "Release" section, find the corresponding version of binary package in Step 2, download the source code.
 
 4. Generate Untrunc's Makefile
    Open CMake GUI, set the source directory and the build directory.
    Push "Configure" button.
 
-5. Set the value of variable AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR. Push "Generate" button.
+5. Set the value of variable AVCODEC_LIBRARY, AVFORMAT_LIBRARY, AVUTIL_LIBRARY, FFMPEG_INCLUDE_DIR, FFMPEG_SOURCE_DIR
+   Uncompress the binary package and the source code package. 
+   Set FFMPEG_INCLUDE_DIR to the directory of the uncompressed binary folder, Set FFMPEG_SOURCE_DIR to the directory of the uncompressed source code folder.
 
-5. Open untrunc.sln with Visual Studio and build
+6. Push "Generate" button to generate the Visual Studio project files.
+
+7. Open untrunc.sln with Visual Studio and build
 
 
 ## Using
