@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 # Project name.
-project(untrunc VERSION 1.0.0)
+project(untrunc VERSION 1.1.0)
 
 set(UNTRUNC_HDRS
     src/AP_AtomDefinitions.h
@@ -36,6 +36,7 @@ set(UNTRUNC_SRCS
     src/codec_rtp.cpp
     src/codec_text.cpp
     src/codec_tmcd.cpp
+    src/codec_tx3g.cpp
     src/codec_unknown.cpp
     src/codecstats.cpp
     src/file.cpp
