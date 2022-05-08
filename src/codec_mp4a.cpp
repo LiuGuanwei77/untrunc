@@ -4,6 +4,10 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#if LIBAVFORMAT_VERSION_MAJOR == 58
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+#include <libavcodec/codec_internal.h>
+#endif
 }
 
 using namespace std;
@@ -41,8 +45,11 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 		avp->data = (uint8_t *)start;
 		avp->size = maxlength;
 		int got_frame = 0;
+#if LIBAVFORMAT_VERSION_MAJOR == 58
 		consumed = context->codec->decode(context, frame, &got_frame, avp);
-
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+		consumed = ((const FFCodec*)context->codec)->cb.decode(context, frame, &got_frame, avp);
+#endif
         
 		if(consumed >= 0) {
 			if(frame->nb_samples > 0)
@@ -52,7 +59,11 @@ Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 				got_frame = 0;
 				av_packet_unref(avp);
 				av_frame_unref(frame);
+#if LIBAVFORMAT_VERSION_MAJOR == 58
 				int consumed2 = context->codec->decode(context, frame, &got_frame, avp);
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+				int consumed2 = ((const FFCodec*)context->codec)->cb.decode(context, frame, &got_frame, avp);
+#endif
 				if(consumed2 >= 0) {
 					if(consumed <= 0)
 						consumed = consumed2;
