@@ -72,7 +72,11 @@ bool File::open(string filename) {
 
 	if(filename.empty())
 		return false;
+#ifdef _MSC_VER
 	errno_t e = fopen_s(&file, filename.c_str(), "rb");
+#else
+	file = fopen(filename.c_str(), "rb");
+#endif
 	if(!file)
 		return false;
 
@@ -90,7 +94,11 @@ bool File::create(string filename) {
 
 	if(filename.empty())
 		return false;
+#ifdef _MSC_VER
 	errno_t e = fopen_s(&file, filename.c_str(), "wb");
+#else
+	file = fopen(filename.c_str(), "wb");
+#endif
 	if(!file)
 		return false;
 
