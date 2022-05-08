@@ -44,6 +44,7 @@ public:
 //	bool knows_start = false;
 //	bool guess_start = false;
 //	bool knows_length = false;
+	bool incomplete_text_chunk = false;
 	CodecStats stats;
 
 
@@ -89,6 +90,8 @@ static	Match rtpMatch(const unsigned char *start, int maxlength);
 
 	Match mijdMatch(const unsigned char *start, int maxlength);
 	Match mijdSearch(const unsigned char *start, int maxlength);
+
+	Match subtitleMatch(const unsigned char* start, int maxlength);
 
 	//we just hope statistics on beginning and lenght is enough
 	Match unknownMatch(const unsigned char *start, int maxlength);
