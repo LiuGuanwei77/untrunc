@@ -1281,6 +1281,10 @@ bool Mp4::repair(string corrupt_filename, Mp4::MdatStrategy strategy, int64_t md
 		}
 		if(best.id == tmcd_id)
 			tracks[best.id].codec.tmcd_seen = true; //id in tracks start from 1.
+		if (tracks[best.id].codec.context->codec_type == AVMediaType::AVMEDIA_TYPE_SUBTITLE && best.length == 2) {
+			if (tracks[best.id].codec.incomplete_text_chunk)
+				tracks[best.id].codec.incomplete_text_chunk = false;
+		}
 		matches.push_back(group);
 	}
 
@@ -1304,7 +1308,6 @@ bool Mp4::repair(string corrupt_filename, Mp4::MdatStrategy strategy, int64_t md
 			track.keyframes.push_back(track.offsets.size());
 
 		track.offsets.push_back(group.offset);
-		
 		if(track.default_size) {
 			//if number of samples per chunk is variable, encode each sample in a different chunk.
 			if(track.default_chunk_nsamples == 0)
