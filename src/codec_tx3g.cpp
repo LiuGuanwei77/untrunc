@@ -10,7 +10,6 @@ extern "C" {
 
 #include <iostream>
 using namespace std;
-//#include <get_bits.h>
 
 
 inline int get_utf8_length(const char* text, const char* text_end)
@@ -60,9 +59,8 @@ Match Codec::subtitleMatch(const unsigned char* start, int maxlength) {
 	readBE<uint16_t>(size, start);
 
 	if (size == 0 && incomplete_text_chunk) {
-		match.chances = 10000;
+		match.chances = 0.1;
 		match.length = 2;
-		incomplete_text_chunk = false;
 		return match;
 	}
 	//probably there is a max size here!
