@@ -7,6 +7,7 @@ Changes to the original repository:
 
 * Change the dependency from Libav to Ffmpeg(https://www.ffmpeg.org)
 * Add support for Windows
+* Ability to fix subtitles
 
 
 ## Installing on Ubuntu
