@@ -59,7 +59,7 @@ Match Codec::subtitleMatch(const unsigned char* start, int maxlength) {
 	readBE<uint16_t>(size, start);
 
 	if (size == 0 && incomplete_text_chunk) {
-		match.chances = 0.1;
+		match.chances = 1000;// 0.1;
 		match.length = 2;
 		return match;
 	}
