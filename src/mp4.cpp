@@ -1246,6 +1246,10 @@ bool Mp4::repair(string corrupt_filename, Mp4::MdatStrategy strategy, int64_t md
 					if(candidate.id == tmcd_id)
 						tracks[candidate.id].codec.tmcd_seen = true;
 					offset = last.offset + candidate.length;
+					if (tracks[candidate.id].codec.context->codec_type == AVMediaType::AVMEDIA_TYPE_SUBTITLE && candidate.length == 2) {
+						if (tracks[candidate.id].codec.incomplete_text_chunk)
+							tracks[candidate.id].codec.incomplete_text_chunk = false;
+					}
 					break;
 				}
 				//no luck either, try another one looping
@@ -1468,8 +1472,7 @@ void Mp4::fixTiming() {
 						fixed_time += fixed.chunks[fix].nsamples*fixed.default_time;
 						fix++;
 					} else {
-						status = 2
-								;
+						status = 2;
 					}
 				}
 			}
