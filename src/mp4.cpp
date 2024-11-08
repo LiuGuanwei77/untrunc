@@ -1140,7 +1140,12 @@ bool Mp4::repair(string corrupt_filename, Mp4::MdatStrategy strategy, int64_t md
 
 			Log::debug << "Skipping containers for all the meta-data atom (moov, free, wide): begin: 0x"
 					   << hex << begin << dec << ".\n";
-			offset += begin;
+			if (begin) {
+				offset += begin;
+			}
+			else {
+				offset += 8;
+			}
 			continue;
 		}
 
