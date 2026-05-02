@@ -5,23 +5,6 @@
 
 using namespace std;
 
-namespace {
-// Refactor step 8: thin handler that delegates to Codec::apchMatch and
-// Codec::apchSearch. First handler in the migration with a non-default
-// search override.
-struct ApchHandler : CodecHandler {
-	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.apchMatch(start, maxlength);
-	}
-	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.apchSearch(start, maxlength);
-	}
-};
-} // namespace
-
-std::unique_ptr<CodecHandler> makeApchHandler() {
-	return std::unique_ptr<CodecHandler>(new ApchHandler());
-}
 /* mbex is a codec for some editing data I cannot find documentation for.
  * for the few examples I got they are very small packets (8, 10, 100 bytes
  * large packets included crec and cist atoms.
@@ -32,31 +15,39 @@ std::unique_ptr<CodecHandler> makeApchHandler() {
  * Length 100: 00 00 00 64    00 00 00 01   00 00 00 5C  63 72 65 63  00 00 00 54  63 69 74 73  00 00 00 0C  00 00 00 02  00 00 00 01
  */
 
-Match Codec::apchMatch(const unsigned char *start, int maxlength) {
+namespace {
+// Refactor step 28: bodies inlined from the now-removed Codec::apchMatch
+// and Codec::apchSearch. No Codec members are used; the codec ref is
+// unused.
+struct ApchHandler : CodecHandler {
+	Match match(Codec &, const unsigned char *start, int maxlength) override {
+		Match match;
+		uint32_t length = readBE<uint32_t>(start);
 
-	Match match;
-	uint32_t length = readBE<uint32_t>(start);
-
-	if(!strncmp((char *)start + 4, "icpf", 4)) {
-		match.length = length;
-		match.chances  = 1e30;
-		return match;
-	}
-	return match;
-}
-
-Match Codec::apchSearch(const unsigned char *start, int maxlength) {
-	Match match;
-	const unsigned char *end = start + maxlength - 8;
-	const  unsigned char *current = start;
-	while(current < end) {
-		if(!strncmp((char *)current + 4, "icpf", 4)) {
-			match.offset = current - start;
+		if(!strncmp((char *)start + 4, "icpf", 4)) {
+			match.length = length;
 			match.chances  = 1e30;
 			return match;
 		}
-		current++;
+		return match;
 	}
-	return match;
-}
+	Match search(Codec &, const unsigned char *start, int maxlength) override {
+		Match match;
+		const unsigned char *end = start + maxlength - 8;
+		const  unsigned char *current = start;
+		while(current < end) {
+			if(!strncmp((char *)current + 4, "icpf", 4)) {
+				match.offset = current - start;
+				match.chances  = 1e30;
+				return match;
+			}
+			current++;
+		}
+		return match;
+	}
+};
+} // namespace
 
+std::unique_ptr<CodecHandler> makeApchHandler() {
+	return std::unique_ptr<CodecHandler>(new ApchHandler());
+}

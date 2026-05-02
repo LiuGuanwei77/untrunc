@@ -80,9 +80,6 @@ static	Match rtpMatch(const unsigned char *start, int maxlength);
 	Match fdscMatch(const unsigned char *start, int maxlength); //GOPRO proprietary codec, still has problems.
 	Match fdscSearch(const unsigned char *start, int maxlength);
 
-	Match apchMatch(const unsigned char *start, int maxlength);
-	Match apchSearch(const unsigned char *start, int maxlength);
-
 	Match hev1Match(const unsigned char *start, int maxlength);
 
 	Match gpmdMatch(const unsigned char *start, int maxlength);
