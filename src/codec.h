@@ -82,7 +82,6 @@ static	Match rtpMatch(const unsigned char *start, int maxlength);
 
 	Match hev1Match(const unsigned char *start, int maxlength);
 
-	Match gpmdMatch(const unsigned char *start, int maxlength);
 	Match gpmdSearch(const unsigned char *start, int maxlength);
 
 	Match cammMatch(const unsigned char *start, int maxlength);
