@@ -71,7 +71,6 @@ static	Match rtpMatch(const unsigned char *start, int maxlength);
 	Match avc1Match(const unsigned char *start, int maxlength);
 	Match avc1Search(const unsigned char *start, int maxlength);
 
-	Match alacMatch(const unsigned char *start, int maxlength);
 
 	Match cammSearch(const unsigned char *start, int maxlength);
 

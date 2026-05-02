@@ -70,61 +70,56 @@ typedef struct ALACContext {
 } ALACContext;
 
 namespace {
-// Refactor step 16: thin handler that delegates to Codec::alacMatch.
-// alacMatch uses Codec::context (avcodec) — accessed via the codec ref.
+// Refactor step 36: alacMatch body inlined here. Reads codec.context
+// (avcodec); reaches into context->priv_data to grab the ALACContext.
 struct AlacHandler : CodecHandler {
 	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.alacMatch(start, maxlength);
+		if(!codec.context)
+			throw string("Missing context for alac codec.");
+
+		ALACContext *alac = (ALACContext *)codec.context->priv_data;
+
+		Match match;
+
+
+		uint32_t duration = 0;
+
+
+		//AvLog useAvLog();
+		av_log_set_level(0);
+		AVFrame *frame = av_frame_alloc();
+		if(!frame)
+			throw string("Could not create AVFrame");
+		AVPacket *avp = av_packet_alloc();
+		avp->data = (uint8_t *)start;
+		avp->size = maxlength;
+		int got_frame = 0;
+		//avcodec_decode_audio4(context, frame, &got_frame, &avp);
+#if LIBAVFORMAT_VERSION_MAJOR == 58
+		int consumed = codec.context->codec->decode(codec.context, frame, &got_frame, avp);
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+		int consumed = ((const FFCodec*)codec.context->codec)->cb.decode(codec.context, frame, &got_frame, avp);
+#endif
+
+		consumed = (alac->gb.index-1) /8 + 1;
+		Log::debug << "Alac length in bits: " << alac->gb.index << " in bytes: " << consumed << "\n";
+
+		av_packet_unref(avp);
+		av_packet_free(&avp);
+		av_frame_free(&frame);
+
+		if(consumed < 12) {
+			match.chances = 0.0f;
+
+		} else {
+			match.chances = 10000;
+			match.length = consumed;
+		}
+		return match;
 	}
 };
 } // namespace
 
 std::unique_ptr<CodecHandler> makeAlacHandler() {
 	return std::unique_ptr<CodecHandler>(new AlacHandler());
-}
-
-Match Codec::alacMatch(const unsigned char *start, int maxlength) {
-
-	if(!context)
-		throw string("Missing context for alac codec.");
-
-	ALACContext *alac = (ALACContext *)context->priv_data;
-
-	Match match;
-
-
-	uint32_t duration = 0;
-
-
-	//AvLog useAvLog();
-	av_log_set_level(0);
-	AVFrame *frame = av_frame_alloc();
-	if(!frame)
-		throw string("Could not create AVFrame");
-	AVPacket *avp = av_packet_alloc();
-	avp->data = (uint8_t *)start;
-	avp->size = maxlength;
-	int got_frame = 0;
-	//avcodec_decode_audio4(context, frame, &got_frame, &avp);
-#if LIBAVFORMAT_VERSION_MAJOR == 58
-	int consumed = context->codec->decode(context, frame, &got_frame, avp);
-#elif LIBAVFORMAT_VERSION_MAJOR == 59
-	int consumed = ((const FFCodec*)context->codec)->cb.decode(context, frame, &got_frame, avp);
-#endif
-	
-	consumed = (alac->gb.index-1) /8 + 1;
-	Log::debug << "Alac length in bits: " << alac->gb.index << " in bytes: " << consumed << "\n";
-
-	av_packet_unref(avp);
-    av_packet_free(&avp);
-	av_frame_free(&frame);
-
-	if(consumed < 12) {
-		match.chances = 0.0f;
-
-	} else {
-		match.chances = 10000;
-		match.length = consumed;
-	}
-	return match;
 }
