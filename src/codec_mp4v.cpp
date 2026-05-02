@@ -1,4 +1,5 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 //#include "avlog.h"
 extern "C" {
@@ -11,6 +12,23 @@ extern "C" {
 }
 
 using namespace std;
+
+namespace {
+// Refactor step 15: thin handler that delegates to Codec::mp4vMatch and
+// Codec::mp4vSearch. Uses Codec::context (avcodec) via the codec ref.
+struct Mp4vHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.mp4vMatch(start, maxlength);
+	}
+	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.mp4vSearch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeMp4vHandler() {
+	return std::unique_ptr<CodecHandler>(new Mp4vHandler());
+}
 
 Match Codec::mp4vSearch(const unsigned char *start, int maxlength) {
 	Match match;

@@ -88,6 +88,7 @@ bool Codec::parse(Atom *trak) {
 	else if(name == "hev1" || name == "hvc1") handler = makeHev1Handler();
 	else if(name == "mebx") handler = makeMbexHandler();
 	else if(name == "mp4a") handler = makeMp4aHandler();
+	else if(name == "mp4v") handler = makeMp4vHandler();
 	else if(name == "priv") handler = makeMijdHandler();
 	else if(name == "rtp ") handler = makeRtpHandler();
 	else if(name == "text") handler = makeTextHandler();
@@ -136,7 +137,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		// back into Codec::mp4aMatch, so behavior is identical.
 		return handler->match(*this, start, maxlength);
 	} else if(name == "mp4v") {
-		return mp4vMatch(start, maxlength);
+		// Refactor step 15: dispatch via handler. Mp4vHandler::match calls
+		// back into Codec::mp4vMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 
 	} else if(name == "hev1" || name == "hvc1") {
 		// Refactor step 13: dispatch via handler. Hev1Handler::match calls
@@ -204,7 +207,9 @@ Match Codec::search(const unsigned char *start, int maxlength) {
 	} else if(name == "avc1") {
 		return avc1Search(start, maxlength);
 	} else if(name == "mp4v") {
-		return mp4vSearch(start, maxlength);
+		// Refactor step 15: dispatch via handler. Mp4vHandler::search
+		// calls back into Codec::mp4vSearch, so behavior is identical.
+		return handler->search(*this, start, maxlength);
 	} else if(name == "gpmd") {
 		// Refactor step 9: dispatch via handler. GpmdHandler::search calls
 		// back into Codec::gpmdSearch, so behavior is identical.
