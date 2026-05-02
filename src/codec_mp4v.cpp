@@ -14,83 +14,74 @@ extern "C" {
 using namespace std;
 
 namespace {
-// Refactor step 15: thin handler that delegates to Codec::mp4vMatch and
-// Codec::mp4vSearch. Uses Codec::context (avcodec) via the codec ref.
+// Refactor step 35: mp4vMatch and mp4vSearch bodies inlined here. Match
+// reads codec.context (avcodec); search uses no Codec members.
 struct Mp4vHandler : CodecHandler {
 	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.mp4vMatch(start, maxlength);
+		Match match;
+		if(!codec.context)
+			return match;
+
+		int32_t begin32 = readBE<int32_t>(start);
+		if(begin32 != 0x1b3 && begin32 != 0x1b6)
+			return match;
+		match.chances = 1<<20;
+
+
+		uint32_t duration = 0;
+
+		int consumed = -1;
+
+		{
+			//AvLog useAvLog();
+			av_log_set_level(0);
+
+			static AVPacket* packet = av_packet_alloc();
+			static AVFrame* frame = av_frame_alloc();
+
+			packet->data = const_cast<unsigned char*>(start);
+			packet->size = maxlength;
+			int got_frame = 0;
+
+#if LIBAVFORMAT_VERSION_MAJOR == 58
+			consumed = codec.context->codec->decode(codec.context, frame, &got_frame, packet);
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+			consumed = ((const FFCodec*)codec.context->codec)->cb.decode(codec.context, frame, &got_frame, packet);
+#endif
+
+
+	//		bool keyframe = frame->key_frame;
+	//		not a frame? = !got_frame;
+		}
+
+		if(consumed == maxlength) {
+			Log::debug << "Codec can't determine length of the packet.";
+			match.chances = 4;
+			consumed = 0; //unknown length
+		} else if(consumed < 0) {
+			match.chances = 0.0f;
+			consumed = 0;
+		}
+
+		match.duration = duration;
+		match.length = consumed;
+		return match;
 	}
-	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.mp4vSearch(start, maxlength);
+	Match search(Codec &, const unsigned char *start, int maxlength) override {
+		Match match;
+		for(int offset = 0; offset < maxlength - 8; offset++) {
+			int32_t begin32 = readBE<int32_t>(start + offset);
+			if(begin32 == 0x1b3 || begin32 == 0x1b6) {
+				match.offset = offset;
+				match.chances = 1<<20;
+				break;
+			}
+		}
+		return match;
 	}
 };
 } // namespace
 
 std::unique_ptr<CodecHandler> makeMp4vHandler() {
 	return std::unique_ptr<CodecHandler>(new Mp4vHandler());
-}
-
-Match Codec::mp4vSearch(const unsigned char *start, int maxlength) {
-	Match match;
-	for(int offset = 0; offset < maxlength - 8; offset++) {
-		int32_t begin32 = readBE<int32_t>(start + offset);
-		if(begin32 == 0x1b3 || begin32 == 0x1b6) {
-			match.offset = offset;
-			match.chances = 1<<20;
-			break;
-		}
-	}
-	return match;
-}
-
-Match Codec::mp4vMatch(const unsigned char *start, int maxlength) {
-
-	Match match;
-	if(!context)
-		return match;
-
-	int32_t begin32 = readBE<int32_t>(start);
-	if(begin32 != 0x1b3 && begin32 != 0x1b6)
-		return match;
-	match.chances = 1<<20;
-
-
-	uint32_t duration = 0;
-
-	int consumed = -1;
-
-	{
-		//AvLog useAvLog();
-		av_log_set_level(0);
-
-		static AVPacket* packet = av_packet_alloc();
-		static AVFrame* frame = av_frame_alloc();
-
-		packet->data = const_cast<unsigned char*>(start);
-		packet->size = maxlength;
-		int got_frame = 0;
-
-#if LIBAVFORMAT_VERSION_MAJOR == 58
-		consumed = context->codec->decode(context, frame, &got_frame, packet);
-#elif LIBAVFORMAT_VERSION_MAJOR == 59
-		consumed = ((const FFCodec*)context->codec)->cb.decode(context, frame, &got_frame, packet);
-#endif
-		
-
-//		bool keyframe = frame->key_frame;
-//		not a frame? = !got_frame;
-	}
-
-	if(consumed == maxlength) {
-		Log::debug << "Codec can't determine length of the packet.";
-		match.chances = 4;
-		consumed = 0; //unknown length
-	} else if(consumed < 0) {
-		match.chances = 0.0f;
-		consumed = 0;
-	}
-
-	match.duration = duration;
-	match.length = consumed;
-	return match;
 }
