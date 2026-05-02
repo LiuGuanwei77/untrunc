@@ -81,7 +81,8 @@ bool Codec::parse(Atom *trak) {
 	// Refactor steps 3+: install per-codec handler. Migrated codecs route
 	// through handler->match(); the rest fall through to the if/else dispatch
 	// in Codec::match below.
-	if(name == "mebx") handler = makeMbexHandler();
+	if(name == "apch") handler = makeApchHandler();
+	else if(name == "mebx") handler = makeMbexHandler();
 	else if(name == "priv") handler = makeMijdHandler();
 	else if(name == "rtp ") handler = makeRtpHandler();
 	else if(name == "text") handler = makeTextHandler();
@@ -143,7 +144,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		// back into Codec::textMatch, so behavior is identical.
 		return handler->match(*this, start, maxlength);
 	} else if(name == "apch") {
-		return apchMatch(start, maxlength);
+		// Refactor step 8: dispatch via handler. ApchHandler::match calls
+		// back into Codec::apchMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if(name == "tmcd") {
 		return tmcdMatch(start, maxlength);		
 	} else if(name == "gpmd") {
@@ -176,7 +179,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 
 Match Codec::search(const unsigned char *start, int maxlength) {
 	if(name == "apch") {
-		return apchSearch(start, maxlength);
+		// Refactor step 8: dispatch via handler. ApchHandler::search calls
+		// back into Codec::apchSearch, so behavior is identical.
+		return handler->search(*this, start, maxlength);
 	} else if(name == "avc1") {
 		return avc1Search(start, maxlength);
 	} else if(name == "mp4v") {

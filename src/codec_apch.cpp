@@ -1,8 +1,27 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 #include <string.h>
 
 using namespace std;
+
+namespace {
+// Refactor step 8: thin handler that delegates to Codec::apchMatch and
+// Codec::apchSearch. First handler in the migration with a non-default
+// search override.
+struct ApchHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.apchMatch(start, maxlength);
+	}
+	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.apchSearch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeApchHandler() {
+	return std::unique_ptr<CodecHandler>(new ApchHandler());
+}
 /* mbex is a codec for some editing data I cannot find documentation for.
  * for the few examples I got they are very small packets (8, 10, 100 bytes
  * large packets included crec and cist atoms.
