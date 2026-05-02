@@ -1,8 +1,24 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 
 ////it might be encode each sample (1-4) bytes as a packet (AARGH!)
 
+namespace {
+// Refactor step 19: thin handler that delegates to Codec::unknownMatch.
+// Installed in Codec::parse() as the final fallthrough — used for any
+// codec name that isn't matched by a more specific handler and isn't
+// pcm. Includes "rtmd", "samr", and any unrecognized codec.
+struct UnknownHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.unknownMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeUnknownHandler() {
+	return std::unique_ptr<CodecHandler>(new UnknownHandler());
+}
 
 Match Codec::unknownMatch(const unsigned char *start, int maxlength) {
 	Match match;

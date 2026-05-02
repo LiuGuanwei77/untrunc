@@ -38,5 +38,6 @@ std::unique_ptr<CodecHandler> makeRtpHandler();
 std::unique_ptr<CodecHandler> makeTextHandler();
 std::unique_ptr<CodecHandler> makeTmcdHandler();
 std::unique_ptr<CodecHandler> makeTx3gHandler();
+std::unique_ptr<CodecHandler> makeUnknownHandler();
 
 #endif // CODEC_HANDLER_H
