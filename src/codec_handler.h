@@ -30,6 +30,7 @@ std::unique_ptr<CodecHandler> makeMbexHandler();
 std::unique_ptr<CodecHandler> makeMijdHandler();
 std::unique_ptr<CodecHandler> makeRtpHandler();
 std::unique_ptr<CodecHandler> makeTextHandler();
+std::unique_ptr<CodecHandler> makeTmcdHandler();
 std::unique_ptr<CodecHandler> makeTx3gHandler();
 
 #endif // CODEC_HANDLER_H

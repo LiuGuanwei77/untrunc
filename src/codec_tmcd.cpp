@@ -1,4 +1,5 @@
 #include "codec.h"
+#include "codec_handler.h"
 
 /* https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap3/qtff3.html
  *
@@ -49,6 +50,22 @@ This entry contains a text item specifying the name of the source tape.
 
 #include <iostream>
 using namespace std;
+
+namespace {
+// Refactor step 12: thin handler that delegates to Codec::tmcdMatch.
+// tmcdMatch reads codec.tmcd_seen (a Codec member); mp4.cpp also writes
+// that field directly (lines 1086, 1241, 1254, 1294), so the state stays
+// on Codec — the handler is purely a dispatch shim.
+struct TmcdHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.tmcdMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeTmcdHandler() {
+	return std::unique_ptr<CodecHandler>(new TmcdHandler());
+}
 Match Codec::tmcdMatch(const unsigned char *start, int maxlength) {
 
 	Match match;

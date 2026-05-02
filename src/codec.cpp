@@ -89,6 +89,7 @@ bool Codec::parse(Atom *trak) {
 	else if(name == "priv") handler = makeMijdHandler();
 	else if(name == "rtp ") handler = makeRtpHandler();
 	else if(name == "text") handler = makeTextHandler();
+	else if(name == "tmcd") handler = makeTmcdHandler();
 	else if(name == "tx3g") handler = makeTx3gHandler();
 
 	return true;
@@ -151,7 +152,10 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		// back into Codec::apchMatch, so behavior is identical.
 		return handler->match(*this, start, maxlength);
 	} else if(name == "tmcd") {
-		return tmcdMatch(start, maxlength);		
+		// Refactor step 12: dispatch via handler. TmcdHandler::match calls
+		// back into Codec::tmcdMatch, which still reads tmcd_seen from
+		// Codec — behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if(name == "gpmd") {
 		// Refactor step 9: dispatch via handler. GpmdHandler::match calls
 		// back into Codec::gpmdMatch, so behavior is identical.
