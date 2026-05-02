@@ -24,6 +24,7 @@ public:
 // dispatch is byte-identical to the pre-refactor behavior.
 std::unique_ptr<CodecHandler> makeApchHandler();
 std::unique_ptr<CodecHandler> makeCammHandler();
+std::unique_ptr<CodecHandler> makeFdscHandler();
 std::unique_ptr<CodecHandler> makeGpmdHandler();
 std::unique_ptr<CodecHandler> makeMbexHandler();
 std::unique_ptr<CodecHandler> makeMijdHandler();

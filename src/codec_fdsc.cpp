@@ -1,4 +1,5 @@
 #include "codec.h"
+#include "codec_handler.h"
 
 /* proprietary gopro codec.
  * Contains:
@@ -15,6 +16,23 @@
 
 #include <iostream>
 using namespace std;
+
+namespace {
+// Refactor step 11: thin handler that delegates to Codec::fdscMatch and
+// Codec::fdscSearch. No state.
+struct FdscHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.fdscMatch(start, maxlength);
+	}
+	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.fdscSearch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeFdscHandler() {
+	return std::unique_ptr<CodecHandler>(new FdscHandler());
+}
 
 Match Codec::fdscSearch(const unsigned char *start, int maxlength) {
 	Match match;
