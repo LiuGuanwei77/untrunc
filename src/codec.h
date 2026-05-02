@@ -76,7 +76,6 @@ static	Match rtpMatch(const unsigned char *start, int maxlength);
 	Match mp4vSearch(const unsigned char *start, int maxlength);
 
 	Match alacMatch(const unsigned char *start, int maxlength);
-	Match mbexMatch(const unsigned char *start, int maxlength);
 	Match pcmMatch(const unsigned char *start, int maxlength);
 	Match textMatch(const unsigned char *start, int maxlength);
 

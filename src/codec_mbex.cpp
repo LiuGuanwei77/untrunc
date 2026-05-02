@@ -5,20 +5,6 @@
 
 using namespace std;
 
-namespace {
-// Refactor step 3: thin handler that delegates to the existing
-// Codec::mbexMatch implementation. Behavior is unchanged; this just routes
-// the dispatch through the new strategy interface for the "mebx" codec.
-struct MbexHandler : CodecHandler {
-	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.mbexMatch(start, maxlength);
-	}
-};
-} // namespace
-
-std::unique_ptr<CodecHandler> makeMbexHandler() {
-	return std::unique_ptr<CodecHandler>(new MbexHandler());
-}
 /* mbex is a codec for some editing data I cannot find documentation for.
  * for the few examples I got they are very small packets (8, 10, 100 bytes
  * large packets included crec and cist atoms.
@@ -29,17 +15,26 @@ std::unique_ptr<CodecHandler> makeMbexHandler() {
  * Length 100: 00 00 00 64    00 00 00 01   00 00 00 5C  63 72 65 63  00 00 00 54  63 69 74 73  00 00 00 0C  00 00 00 02  00 00 00 01
  */
 
-Match Codec::mbexMatch(const unsigned char *start, int maxlength) {
-
-	Match match;
-	uint32_t length = readBE<uint32_t>(start);
-	if(length > 200) return match;
-	match.chances = 1e10/200.0f;
-	match.length = length;
-	if(!strncmp((char *)start + 8, "crec", 4)) {
-		match.chances *= 1e10;
+namespace {
+// Refactor step 21: body inlined from the now-removed Codec::mbexMatch.
+// MbexHandler holds no codec-specific state; it doesn't access any Codec
+// members, so the codec ref is unused.
+struct MbexHandler : CodecHandler {
+	Match match(Codec &, const unsigned char *start, int maxlength) override {
+		Match match;
+		uint32_t length = readBE<uint32_t>(start);
+		if(length > 200) return match;
+		match.chances = 1e10/200.0f;
+		match.length = length;
+		if(!strncmp((char *)start + 8, "crec", 4)) {
+			match.chances *= 1e10;
+			return match;
+		}
 		return match;
 	}
-	return match;
-}
+};
+} // namespace
 
+std::unique_ptr<CodecHandler> makeMbexHandler() {
+	return std::unique_ptr<CodecHandler>(new MbexHandler());
+}
