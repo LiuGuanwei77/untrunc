@@ -1,7 +1,21 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 
 #include <string.h>
+
+namespace {
+// Refactor step 4: thin handler that delegates to Codec::textMatch.
+struct TextHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.textMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeTextHandler() {
+	return std::unique_ptr<CodecHandler>(new TextHandler());
+}
 
 /* codec text for quicktime chapters.
  * https://developer.apple.com/standards/qtff-2001.pdf text sample data
