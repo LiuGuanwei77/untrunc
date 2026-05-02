@@ -1,4 +1,5 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 
 extern "C" {
@@ -9,6 +10,24 @@ extern "C" {
 #include <assert.h>
 
 using namespace std;
+
+namespace {
+// Refactor step 17: thin handler that delegates to Codec::avc1Match and
+// Codec::avc1Search. avc1Match uses Codec::context (avcodec) and the
+// stats parsed off the avcC atom — accessed via the codec ref.
+struct Avc1Handler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.avc1Match(start, maxlength);
+	}
+	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.avc1Search(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeAvc1Handler() {
+	return std::unique_ptr<CodecHandler>(new Avc1Handler());
+}
 
 class NalInfo {
  public:

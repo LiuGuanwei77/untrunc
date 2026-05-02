@@ -83,6 +83,7 @@ bool Codec::parse(Atom *trak) {
 	// in Codec::match below.
 	if(name == "alac") handler = makeAlacHandler();
 	else if(name == "apch") handler = makeApchHandler();
+	else if(name == "avc1") handler = makeAvc1Handler();
 	else if(name == "camm") handler = makeCammHandler();
 	else if(name == "fdsc") handler = makeFdscHandler();
 	else if(name == "gpmd") handler = makeGpmdHandler();
@@ -131,7 +132,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		// remains in place.
 		return handler->match(*this, start, maxlength);
 	} else if(name == "avc1") {
-		return avc1Match(start, maxlength);
+		// Refactor step 17: dispatch via handler. Avc1Handler::match calls
+		// back into Codec::avc1Match, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 
 	} else if(name == "mp4a") {
 		// Refactor step 14: dispatch via handler. Mp4aHandler::match calls
@@ -208,7 +211,9 @@ Match Codec::search(const unsigned char *start, int maxlength) {
 		// back into Codec::apchSearch, so behavior is identical.
 		return handler->search(*this, start, maxlength);
 	} else if(name == "avc1") {
-		return avc1Search(start, maxlength);
+		// Refactor step 17: dispatch via handler. Avc1Handler::search
+		// calls back into Codec::avc1Search, so behavior is identical.
+		return handler->search(*this, start, maxlength);
 	} else if(name == "mp4v") {
 		// Refactor step 15: dispatch via handler. Mp4vHandler::search
 		// calls back into Codec::mp4vSearch, so behavior is identical.
