@@ -14,119 +14,112 @@ extern "C" {
 using namespace std;
 
 namespace {
-// Refactor step 14: thin handler that delegates to Codec::mp4aMatch.
-// mp4aMatch uses Codec::context (avcodec) — accessed through the codec
-// reference passed to match. No state lives on the handler itself.
+// Refactor step 34: mp4aMatch body inlined here. Reads codec.context
+// (the avcodec context) — the only Codec member touched by this function.
 struct Mp4aHandler : CodecHandler {
 	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.mp4aMatch(start, maxlength);
+		Match match;
+
+		if(!codec.context)
+			return match;
+
+
+		// XXX Horrible Hack: These values might need to be changed depending on the file. XXX
+		if((start[4] == 0xee && start[5] == 0x1b) ||
+				(start[4] == 0x3e && start[5] == 0x64) ) {
+			match.chances = 32000;
+			Log::debug << "mp4a: Success because of horrible hack.\n";
+		}
+
+		int32_t begin32 = readBE<int32_t>(start);
+		if(start[0] == 0 && begin32 < 1000000)
+			return match;
+
+		uint32_t duration = 0;
+
+		int consumed = -1;
+		{
+			//AvLog useAvLog(AV_LOG_DEBUG);
+			av_log_set_level(0);
+			AVFrame *frame = av_frame_alloc();
+			if(!frame)
+				throw string("Could not create AVFrame");
+			AVPacket *avp = av_packet_alloc();
+			avp->data = (uint8_t *)start;
+			avp->size = maxlength;
+			int got_frame = 0;
+#if LIBAVFORMAT_VERSION_MAJOR == 58
+			consumed = codec.context->codec->decode(codec.context, frame, &got_frame, avp);
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+			consumed = ((const FFCodec*)codec.context->codec)->cb.decode(codec.context, frame, &got_frame, avp);
+#endif
+
+			if(consumed >= 0) {
+				if(frame->nb_samples > 0)
+					duration = frame->nb_samples;
+				// Flush decoder to receive buffered packets.
+				if(consumed <= 0 || duration <= 0) {
+					got_frame = 0;
+					av_packet_unref(avp);
+					av_frame_unref(frame);
+#if LIBAVFORMAT_VERSION_MAJOR == 58
+					int consumed2 = codec.context->codec->decode(codec.context, frame, &got_frame, avp);
+#elif LIBAVFORMAT_VERSION_MAJOR == 59
+					int consumed2 = ((const FFCodec*)codec.context->codec)->cb.decode(codec.context, frame, &got_frame, avp);
+#endif
+					if(consumed2 >= 0) {
+						if(consumed <= 0)
+							consumed = consumed2;
+						if(duration <= 0 && frame->nb_samples > 0)
+							duration = frame->nb_samples;
+					}
+				}
+			}
+			av_packet_unref(avp);
+			av_packet_free(&avp);
+			av_frame_free(&frame);
+		}
+
+		if(consumed == maxlength) {
+			Log::debug << "Codec can't determine length of the packet.";
+			match.chances = 4;
+			consumed = 0; //unknown length
+		} else if(consumed < 0) {
+			match.chances = 0.0f;
+			consumed = 0;
+		} else if(consumed == 6)
+			match.chances = 32000;
+
+	//actually below 200 is pretty common! l
+	//TODO use actual length of the good packets to assess a probability
+		else if(consumed < 400)
+			match.chances = 3;
+		else
+			match.chances = 100;
+
+		match.duration = duration;
+		match.length = consumed;
+
+		/*
+		if(match.chances > 0) {
+			//count zeros.
+			int zeros = 0;
+			for(int i = 0; i < match.length; i++) {
+				if(start[i] == 0)
+					zeros++;
+			}
+			if(zeros*2 > match.length)
+				cout << "ZEROS! " << zeros << " / " << match.length << endl;
+			else
+				cout << "UNOS!" << endl;
+		}*/
+		return match;
 	}
 };
 } // namespace
 
 std::unique_ptr<CodecHandler> makeMp4aHandler() {
 	return std::unique_ptr<CodecHandler>(new Mp4aHandler());
-}
-
-Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
-
-
-	Match match;
-
-	if(!context)
-		return match;
-
-
-	// XXX Horrible Hack: These values might need to be changed depending on the file. XXX
-	if((start[4] == 0xee && start[5] == 0x1b) ||
-			(start[4] == 0x3e && start[5] == 0x64) ) {
-		match.chances = 32000;
-		Log::debug << "mp4a: Success because of horrible hack.\n";
-	}
-
-	int32_t begin32 = readBE<int32_t>(start);
-	if(start[0] == 0 && begin32 < 1000000)
-		return match;
-
-	uint32_t duration = 0;
-
-	int consumed = -1;
-	{
-		//AvLog useAvLog(AV_LOG_DEBUG);
-		av_log_set_level(0);
-		AVFrame *frame = av_frame_alloc();
-		if(!frame)
-			throw string("Could not create AVFrame");
-		AVPacket *avp = av_packet_alloc();
-		avp->data = (uint8_t *)start;
-		avp->size = maxlength;
-		int got_frame = 0;
-#if LIBAVFORMAT_VERSION_MAJOR == 58
-		consumed = context->codec->decode(context, frame, &got_frame, avp);
-#elif LIBAVFORMAT_VERSION_MAJOR == 59
-		consumed = ((const FFCodec*)context->codec)->cb.decode(context, frame, &got_frame, avp);
-#endif
-        
-		if(consumed >= 0) {
-			if(frame->nb_samples > 0)
-				duration = frame->nb_samples;
-			// Flush decoder to receive buffered packets.
-			if(consumed <= 0 || duration <= 0) {
-				got_frame = 0;
-				av_packet_unref(avp);
-				av_frame_unref(frame);
-#if LIBAVFORMAT_VERSION_MAJOR == 58
-				int consumed2 = context->codec->decode(context, frame, &got_frame, avp);
-#elif LIBAVFORMAT_VERSION_MAJOR == 59
-				int consumed2 = ((const FFCodec*)context->codec)->cb.decode(context, frame, &got_frame, avp);
-#endif
-				if(consumed2 >= 0) {
-					if(consumed <= 0)
-						consumed = consumed2;
-					if(duration <= 0 && frame->nb_samples > 0)
-						duration = frame->nb_samples;
-				}
-			}
-		}
-		av_packet_unref(avp);
-        av_packet_free(&avp);
-		av_frame_free(&frame);
-	}
-
-	if(consumed == maxlength) {
-		Log::debug << "Codec can't determine length of the packet.";
-		match.chances = 4;
-		consumed = 0; //unknown length
-	} else if(consumed < 0) {
-		match.chances = 0.0f;
-		consumed = 0;
-	} else if(consumed == 6)
-        match.chances = 32000;
-
-//actually below 200 is pretty common! l
-//TODO use actual length of the good packets to assess a probability
-	else if(consumed < 400)
-		match.chances = 3;
-	else
-		match.chances = 100;
-
-	match.duration = duration;
-	match.length = consumed;
-
-    /*
-	if(match.chances > 0) {
-		//count zeros.
-		int zeros = 0;
-		for(int i = 0; i < match.length; i++) {
-			if(start[i] == 0)
-				zeros++;
-		}
-		if(zeros*2 > match.length)
-			cout << "ZEROS! " << zeros << " / " << match.length << endl;
-		else
-			cout << "UNOS!" << endl;
-	}*/
-	return match;
 }
 
 
