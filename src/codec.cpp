@@ -87,6 +87,7 @@ bool Codec::parse(Atom *trak) {
 	else if(name == "gpmd") handler = makeGpmdHandler();
 	else if(name == "hev1" || name == "hvc1") handler = makeHev1Handler();
 	else if(name == "mebx") handler = makeMbexHandler();
+	else if(name == "mp4a") handler = makeMp4aHandler();
 	else if(name == "priv") handler = makeMijdHandler();
 	else if(name == "rtp ") handler = makeRtpHandler();
 	else if(name == "text") handler = makeTextHandler();
@@ -131,7 +132,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		return avc1Match(start, maxlength);
 
 	} else if(name == "mp4a") {
-		return mp4aMatch(start, maxlength);
+		// Refactor step 14: dispatch via handler. Mp4aHandler::match calls
+		// back into Codec::mp4aMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if(name == "mp4v") {
 		return mp4vMatch(start, maxlength);
 

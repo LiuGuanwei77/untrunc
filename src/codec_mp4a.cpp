@@ -1,4 +1,5 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 
 extern "C" {
@@ -11,6 +12,21 @@ extern "C" {
 }
 
 using namespace std;
+
+namespace {
+// Refactor step 14: thin handler that delegates to Codec::mp4aMatch.
+// mp4aMatch uses Codec::context (avcodec) — accessed through the codec
+// reference passed to match. No state lives on the handler itself.
+struct Mp4aHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.mp4aMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeMp4aHandler() {
+	return std::unique_ptr<CodecHandler>(new Mp4aHandler());
+}
 
 Match Codec::mp4aMatch(const unsigned char *start, int maxlength) {
 
