@@ -5,21 +5,6 @@
 
 using namespace std;
 
-namespace {
-// Refactor step 6: thin handler that delegates to Codec::mijdMatch (the
-// match function for the "priv" codec). Codec::mijdSearch exists but is
-// not currently dispatched from Codec::search, so the default empty
-// CodecHandler::search is fine here.
-struct MijdHandler : CodecHandler {
-	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.mijdMatch(start, maxlength);
-	}
-};
-} // namespace
-
-std::unique_ptr<CodecHandler> makeMijdHandler() {
-	return std::unique_ptr<CodecHandler>(new MijdHandler());
-}
 /*  MIJD is a proprietary codec...
  *  it looks like it contains a couple of jpegs,
  * at offset 28 is the relative begin of the first image
@@ -31,25 +16,37 @@ std::unique_ptr<CodecHandler> makeMijdHandler() {
  *
 */
 
-Match Codec::mijdMatch(const unsigned char *start, int maxlength) {
+namespace {
+// Refactor step 24: body inlined from the now-removed Codec::mijdMatch.
+// MijdHandler holds no codec-specific state; the function uses no Codec
+// members, so the codec ref is unused. Codec::mijdSearch was never
+// dispatched from Codec::search even before the refactor, and is left
+// in place as dead code (preserving the original source).
+struct MijdHandler : CodecHandler {
+	Match match(Codec &, const unsigned char *start, int maxlength) override {
+		Match match;
 
-	Match match;
+		if(!strncmp((char *)start, "mijd", 4)) {
+			uint32_t off = *(uint32_t *)(start + 44);
+			uint32_t length = *(uint32_t *)(start + 48);
+			match.length = off + length;
+			match.chances  = 1e30;
+			return match;
+		}
+		uint32_t word = *(uint32_t *)start;
+		if(word == 0x3030f800) {
+			match.length = 250;
+			match.chances  = 1e30;
+			return match;
+		}
 
-	if(!strncmp((char *)start, "mijd", 4)) {
-		uint32_t off = *(uint32_t *)(start + 44);
-		uint32_t length = *(uint32_t *)(start + 48);
-		match.length = off + length;
-		match.chances  = 1e30;
 		return match;
 	}
-	uint32_t word = *(uint32_t *)start;
-	if(word == 0x3030f800) {
-		match.length = 250;
-		match.chances  = 1e30;
-		return match;
-	}
+};
+} // namespace
 
-	return match;
+std::unique_ptr<CodecHandler> makeMijdHandler() {
+	return std::unique_ptr<CodecHandler>(new MijdHandler());
 }
 
 Match Codec::mijdSearch(const unsigned char *start, int maxlength) {
@@ -68,4 +65,3 @@ Match Codec::mijdSearch(const unsigned char *start, int maxlength) {
 	}
 	return match;
 }
-

@@ -94,7 +94,6 @@ static	Match rtpMatch(const unsigned char *start, int maxlength);
 	Match cammMatch(const unsigned char *start, int maxlength);
 	Match cammSearch(const unsigned char *start, int maxlength);
 
-	Match mijdMatch(const unsigned char *start, int maxlength);
 	Match mijdSearch(const unsigned char *start, int maxlength);
 
 	//we just hope statistics on beginning and lenght is enough
