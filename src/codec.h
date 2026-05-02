@@ -1,10 +1,12 @@
 #ifndef CODEC_H
 #define CODEC_H
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <algorithm>
 
+#include "codec_handler.h"
 #include "codecstats.h"
 
 extern "C" {
@@ -46,6 +48,12 @@ public:
 //	bool knows_length = false;
 	bool incomplete_text_chunk = false;
 	CodecStats stats;
+
+	// Per-codec match/search strategy. Currently always nullptr — wired up in
+	// step 3 of the refactor. Its presence makes Codec move-only (the implicit
+	// copy ctor is deleted by unique_ptr), which is why Track copies must use
+	// std::move from this point on.
+	std::unique_ptr<CodecHandler> handler;
 
 
 	Codec();

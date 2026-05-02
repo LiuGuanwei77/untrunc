@@ -817,7 +817,9 @@ bool Mp4::parseTracks() {
 		track.parse(traks[i], context->streams[i]->codecpar);
 		track.codec.stats.init(track, mdat);
 
-		tracks.push_back(track);
+		// Codec now holds a unique_ptr<CodecHandler> (refactor step 2), so
+		// Track is move-only. `track` is not used after this call.
+		tracks.push_back(std::move(track));
 	}
 	return true;
 }
