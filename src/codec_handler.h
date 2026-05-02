@@ -24,5 +24,6 @@ public:
 // dispatch is byte-identical to the pre-refactor behavior.
 std::unique_ptr<CodecHandler> makeMbexHandler();
 std::unique_ptr<CodecHandler> makeTextHandler();
+std::unique_ptr<CodecHandler> makeTx3gHandler();
 
 #endif // CODEC_HANDLER_H

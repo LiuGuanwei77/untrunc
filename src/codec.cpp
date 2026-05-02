@@ -83,6 +83,7 @@ bool Codec::parse(Atom *trak) {
 	// in Codec::match below.
 	if(name == "mebx") handler = makeMbexHandler();
 	else if(name == "text") handler = makeTextHandler();
+	else if(name == "tx3g") handler = makeTx3gHandler();
 
 	return true;
 }
@@ -150,7 +151,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 	} else if(name == "priv") {
 		return mijdMatch(start, maxlength);
 	} else if (name == "tx3g") {
-		return subtitleMatch(start, maxlength);
+		// Refactor step 5: dispatch via handler. Tx3gHandler::match calls
+		// back into Codec::subtitleMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if(pcm) {
 		return pcmMatch(start, maxlength);
 	} else { //rtmd

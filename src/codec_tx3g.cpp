@@ -1,4 +1,5 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 #include <string.h>
 //#include "avlog.h"
@@ -10,6 +11,20 @@ extern "C" {
 
 #include <iostream>
 using namespace std;
+
+namespace {
+// Refactor step 5: thin handler that delegates to Codec::subtitleMatch (the
+// match function for the "tx3g" codec). Behavior is unchanged.
+struct Tx3gHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.subtitleMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeTx3gHandler() {
+	return std::unique_ptr<CodecHandler>(new Tx3gHandler());
+}
 
 
 inline int get_utf8_length(const char* text, const char* text_end)
