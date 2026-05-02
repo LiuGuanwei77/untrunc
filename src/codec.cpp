@@ -81,7 +81,8 @@ bool Codec::parse(Atom *trak) {
 	// Refactor steps 3+: install per-codec handler. Migrated codecs route
 	// through handler->match(); the rest fall through to the if/else dispatch
 	// in Codec::match below.
-	if(name == "apch") handler = makeApchHandler();
+	if(name == "alac") handler = makeAlacHandler();
+	else if(name == "apch") handler = makeApchHandler();
 	else if(name == "camm") handler = makeCammHandler();
 	else if(name == "fdsc") handler = makeFdscHandler();
 	else if(name == "gpmd") handler = makeGpmdHandler();
@@ -147,7 +148,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		return handler->match(*this, start, maxlength);
 
 	} else if(name == "alac") {
-		return alacMatch(start, maxlength);
+		// Refactor step 16: dispatch via handler. AlacHandler::match calls
+		// back into Codec::alacMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if(name == "mebx") {
 		// Refactor step 3: dispatch via handler. MbexHandler::match calls
 		// back into Codec::mbexMatch, so behavior is identical.

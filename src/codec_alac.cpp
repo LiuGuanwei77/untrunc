@@ -1,4 +1,5 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 #include <string.h>
 //#include "avlog.h"
@@ -67,6 +68,20 @@ typedef struct ALACContext {
 	int extra_bits;     /**< number of extra bits ALACContext *beyond 16-bit */
 	int nb_samples;     /**< number of samples in the current frame */
 } ALACContext;
+
+namespace {
+// Refactor step 16: thin handler that delegates to Codec::alacMatch.
+// alacMatch uses Codec::context (avcodec) — accessed via the codec ref.
+struct AlacHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.alacMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeAlacHandler() {
+	return std::unique_ptr<CodecHandler>(new AlacHandler());
+}
 
 Match Codec::alacMatch(const unsigned char *start, int maxlength) {
 
