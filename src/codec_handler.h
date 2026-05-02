@@ -33,6 +33,7 @@ std::unique_ptr<CodecHandler> makeMbexHandler();
 std::unique_ptr<CodecHandler> makeMijdHandler();
 std::unique_ptr<CodecHandler> makeMp4aHandler();
 std::unique_ptr<CodecHandler> makeMp4vHandler();
+std::unique_ptr<CodecHandler> makePcmHandler();
 std::unique_ptr<CodecHandler> makeRtpHandler();
 std::unique_ptr<CodecHandler> makeTextHandler();
 std::unique_ptr<CodecHandler> makeTmcdHandler();

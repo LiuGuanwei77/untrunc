@@ -96,6 +96,7 @@ bool Codec::parse(Atom *trak) {
 	else if(name == "text") handler = makeTextHandler();
 	else if(name == "tmcd") handler = makeTmcdHandler();
 	else if(name == "tx3g") handler = makeTx3gHandler();
+	else if(pcm) handler = makePcmHandler();
 
 	return true;
 }
@@ -194,7 +195,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 		// back into Codec::subtitleMatch, so behavior is identical.
 		return handler->match(*this, start, maxlength);
 	} else if(pcm) {
-		return pcmMatch(start, maxlength);
+		// Refactor step 18: dispatch via handler. PcmHandler::match calls
+		// back into Codec::pcmMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else { //rtmd
 		return unknownMatch(start, maxlength);
 	}
