@@ -65,9 +65,6 @@ public:
 	Match match(const unsigned char *start, int maxlength);
 	Match search(const unsigned char *start, int maxlength);
 
-//	//sometimes (maybe) rtp info is present without a track
-static	Match rtpMatch(const unsigned char *start, int maxlength);
-
 
 	Match cammSearch(const unsigned char *start, int maxlength);
 

@@ -25,6 +25,11 @@ public:
 // out so neither handler needs the Codec member function.
 Match gpmdSearch(const unsigned char *start, int maxlength);
 
+// Free helper used by RtpHandler::match and by mp4.cpp's mdat scan
+// (which calls it outside of any track context). Pre-refactor this
+// lived as static Codec::rtpMatch.
+Match rtpMatch(const unsigned char *start, int maxlength);
+
 // Per-codec handler factories. During the migration, each handler delegates
 // back to the existing Codec::xxxMatch / Codec::xxxSearch member function so
 // dispatch is byte-identical to the pre-refactor behavior.

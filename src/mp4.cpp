@@ -1162,7 +1162,7 @@ bool Mp4::repair(string corrupt_filename, Mp4::MdatStrategy strategy, int64_t md
 			if((mdat->file_begin + offset) == 129770)
 				Log::debug << "RTP test\n";
 			//testing up to
-			Match match = Codec::rtpMatch(start, maxlength);
+			Match match = rtpMatch(start, maxlength);
 			if(match.chances) {
 				Log::debug << "Rtp packets. Lenght: " << match.length << "\n";
 				offset += match.length;
