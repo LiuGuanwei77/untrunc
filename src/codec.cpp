@@ -126,162 +126,20 @@ bool Codec::InitCodec(AVCodecParameters * codecpar) {
 //Match rtpMatch(const unsigned char *start, int maxlength);
 
 
+// Refactor step 20: every Codec has a handler installed by parse(), so both
+// match() and search() collapse to a single dispatch through the handler.
+// For codecs that didn't have an xxxSearch in the original Codec::search
+// dispatcher, the default CodecHandler::search returns an empty Match —
+// which is exactly what the pre-refactor fallthrough did, so behavior is
+// preserved. The unreachable loop that lived after the fallthrough in the
+// old Codec::search has been removed (it was dead code, sat after an
+// unconditional `return match;`).
 Match Codec::match(const unsigned char *start, int maxlength) {
-	if(name == "rtp ") {
-		// Refactor step 7: dispatch via handler. RtpHandler::match calls
-		// back into Codec::rtpMatch, so behavior is identical. The static
-		// Codec::rtpMatch is still called from mp4.cpp's mdat scan and
-		// remains in place.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "avc1") {
-		// Refactor step 17: dispatch via handler. Avc1Handler::match calls
-		// back into Codec::avc1Match, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-
-	} else if(name == "mp4a") {
-		// Refactor step 14: dispatch via handler. Mp4aHandler::match calls
-		// back into Codec::mp4aMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "mp4v") {
-		// Refactor step 15: dispatch via handler. Mp4vHandler::match calls
-		// back into Codec::mp4vMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-
-	} else if(name == "hev1" || name == "hvc1") {
-		// Refactor step 13: dispatch via handler. Hev1Handler::match calls
-		// back into Codec::hev1Match, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-
-	} else if(name == "alac") {
-		// Refactor step 16: dispatch via handler. AlacHandler::match calls
-		// back into Codec::alacMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "mebx") {
-		// Refactor step 3: dispatch via handler. MbexHandler::match calls
-		// back into Codec::mbexMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "text") {
-		// Refactor step 4: dispatch via handler. TextHandler::match calls
-		// back into Codec::textMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "apch") {
-		// Refactor step 8: dispatch via handler. ApchHandler::match calls
-		// back into Codec::apchMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "tmcd") {
-		// Refactor step 12: dispatch via handler. TmcdHandler::match calls
-		// back into Codec::tmcdMatch, which still reads tmcd_seen from
-		// Codec — behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "gpmd") {
-		// Refactor step 9: dispatch via handler. GpmdHandler::match calls
-		// back into Codec::gpmdMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "camm") {
-		// Refactor step 10: dispatch via handler. CammHandler::match calls
-		// back into Codec::cammMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-
-
-	} else if(name == "fdsc") {
-		// Refactor step 11: dispatch via handler. FdscHandler::match calls
-		// back into Codec::fdscMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(name == "priv") {
-		// Refactor step 6: dispatch via handler. MijdHandler::match calls
-		// back into Codec::mijdMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if (name == "tx3g") {
-		// Refactor step 5: dispatch via handler. Tx3gHandler::match calls
-		// back into Codec::subtitleMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else if(pcm) {
-		// Refactor step 18: dispatch via handler. PcmHandler::match calls
-		// back into Codec::pcmMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	} else { //rtmd
-		// Refactor step 19: dispatch via handler. UnknownHandler::match
-		// calls back into Codec::unknownMatch, so behavior is identical.
-		return handler->match(*this, start, maxlength);
-	}
-
-
-	Log::error << "Unsupported codec: " << name << "\n";
-	return Match();
-	//throw "Usnupported codec\n";
+	return handler->match(*this, start, maxlength);
 }
 
 Match Codec::search(const unsigned char *start, int maxlength) {
-	if(name == "apch") {
-		// Refactor step 8: dispatch via handler. ApchHandler::search calls
-		// back into Codec::apchSearch, so behavior is identical.
-		return handler->search(*this, start, maxlength);
-	} else if(name == "avc1") {
-		// Refactor step 17: dispatch via handler. Avc1Handler::search
-		// calls back into Codec::avc1Search, so behavior is identical.
-		return handler->search(*this, start, maxlength);
-	} else if(name == "mp4v") {
-		// Refactor step 15: dispatch via handler. Mp4vHandler::search
-		// calls back into Codec::mp4vSearch, so behavior is identical.
-		return handler->search(*this, start, maxlength);
-	} else if(name == "gpmd") {
-		// Refactor step 9: dispatch via handler. GpmdHandler::search calls
-		// back into Codec::gpmdSearch, so behavior is identical.
-		return handler->search(*this, start, maxlength);
-	} else if(name == "camm") {
-		// Refactor step 10: dispatch via handler. CammHandler::search
-		// calls Codec::gpmdSearch (preserving the pre-refactor quirk that
-		// camm's search routed through gpmd, not cammSearch).
-		return handler->search(*this, start, maxlength);
-	} else if(name == "fdsc") {
-		// Refactor step 11: dispatch via handler. FdscHandler::search
-		// calls back into Codec::fdscSearch, so behavior is identical.
-		return handler->search(*this, start, maxlength);
-	}
-
-	Match match;
-	return match;
-
-	int count = 0;
-	for(int offset = 8; offset < maxlength - 8; offset++) {
-		if(count > maxlength)
-			throw "Something fishy";
-		int64_t begin64 = readBE<int64_t>(start+offset);
-		int32_t begin32 = readBE<int32_t>(start+offset);
-		int32_t next32 = readBE<int32_t>(start+offset+4);
-
-		//skip zeros
-		if(begin32 == 0) {
-			continue;
-		}
-
-		//skip atoms such as free/etc.
-		if(next32 == *(int32_t *)"free" || next32 == *(int32_t *)"moov" || next32 == *(int32_t *)"hoov"
-				|| next32 == *(int32_t *)"moof" || next32 == *(int32_t *)"wide") {
-			if(begin32 < maxlength && begin32 > 8)
-				offset += begin32 -1;
-			continue;
-		}
-
-		if(stats.beginnings64.count(begin64)) {
-			match = Codec::match(start + offset, maxlength - offset);
-			match.offset  = offset;
-			if(match.chances > 0) return match;
-		}
-		//if(name == "avc1") {
-
-		//} else {
-		if(stats.beginnings64.size() < 10)
-			continue;
-		if(stats.beginnings32.count(begin32)) {
-			match = Codec::match(start + offset, maxlength - offset);
-			match.offset  = offset;
-			if(match.chances > 0) return match;
-		}
-		//}
-		count++;
-	}
-	return Match();
+	return handler->search(*this, start, maxlength);
 }
 
 
