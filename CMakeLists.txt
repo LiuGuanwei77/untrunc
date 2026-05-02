@@ -11,6 +11,7 @@ set(UNTRUNC_HDRS
     src/AP_AtomDefinitions.h
     src/atom.h
     src/codec.h
+    src/codec_handler.h
     src/codecstats.h
     src/file.h
     src/h264_sps.h
@@ -27,6 +28,7 @@ set(UNTRUNC_SRCS
     src/codec_camm.cpp
     src/codec_fdsc.cpp
     src/codec_gpmd.cpp
+    src/codec_handler.cpp
     src/codec_hev1.cpp
     src/codec_mbex.cpp
     src/codec_mijd.cpp
