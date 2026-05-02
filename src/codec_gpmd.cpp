@@ -1,8 +1,27 @@
 #include "codec.h"
+#include "codec_handler.h"
 
 #include <set>
 #include <iostream>
 using namespace std;
+
+namespace {
+// Refactor step 9: thin handler that delegates to Codec::gpmdMatch and
+// Codec::gpmdSearch. The "camm" codec also dispatches search through
+// gpmdSearch — that quirk will be preserved when camm is migrated.
+struct GpmdHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.gpmdMatch(start, maxlength);
+	}
+	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.gpmdSearch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeGpmdHandler() {
+	return std::unique_ptr<CodecHandler>(new GpmdHandler());
+}
 Match Codec::gpmdMatch(const unsigned char *start, int maxlength) {
 	Match match;
 

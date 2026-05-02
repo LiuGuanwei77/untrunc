@@ -82,6 +82,7 @@ bool Codec::parse(Atom *trak) {
 	// through handler->match(); the rest fall through to the if/else dispatch
 	// in Codec::match below.
 	if(name == "apch") handler = makeApchHandler();
+	else if(name == "gpmd") handler = makeGpmdHandler();
 	else if(name == "mebx") handler = makeMbexHandler();
 	else if(name == "priv") handler = makeMijdHandler();
 	else if(name == "rtp ") handler = makeRtpHandler();
@@ -150,7 +151,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 	} else if(name == "tmcd") {
 		return tmcdMatch(start, maxlength);		
 	} else if(name == "gpmd") {
-		return gpmdMatch(start, maxlength);
+		// Refactor step 9: dispatch via handler. GpmdHandler::match calls
+		// back into Codec::gpmdMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if(name == "camm") {
 		return cammMatch(start, maxlength);
 
@@ -187,7 +190,9 @@ Match Codec::search(const unsigned char *start, int maxlength) {
 	} else if(name == "mp4v") {
 		return mp4vSearch(start, maxlength);
 	} else if(name == "gpmd") {
-		return gpmdSearch(start, maxlength);
+		// Refactor step 9: dispatch via handler. GpmdHandler::search calls
+		// back into Codec::gpmdSearch, so behavior is identical.
+		return handler->search(*this, start, maxlength);
 	} else if(name == "camm") {
 		return gpmdSearch(start, maxlength);
 	} else if(name == "fdsc") {
