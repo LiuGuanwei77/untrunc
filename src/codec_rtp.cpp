@@ -1,7 +1,24 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 #include <cmath>
 #include <limits>
+
+namespace {
+// Refactor step 7: thin handler that delegates to Codec::rtpMatch (the
+// match function for the "rtp " codec). rtpMatch is also called as a
+// static from outside Codec (mp4.cpp's mdat scan), so the static method
+// is left in place — the handler simply forwards.
+struct RtpHandler : CodecHandler {
+	Match match(Codec &, const unsigned char *start, int maxlength) override {
+		return Codec::rtpMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeRtpHandler() {
+	return std::unique_ptr<CodecHandler>(new RtpHandler());
+}
 
 //  https://developer.apple.com/standards/qtff-2001.pdf page 153
 //  https://en.wikipedia.org/wiki/Real-time_Transport_Protocol#:~:text=The%20RTP%20header%20has%20a,the%20version%20of%20the%20protocol.

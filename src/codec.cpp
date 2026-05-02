@@ -83,6 +83,7 @@ bool Codec::parse(Atom *trak) {
 	// in Codec::match below.
 	if(name == "mebx") handler = makeMbexHandler();
 	else if(name == "priv") handler = makeMijdHandler();
+	else if(name == "rtp ") handler = makeRtpHandler();
 	else if(name == "text") handler = makeTextHandler();
 	else if(name == "tx3g") handler = makeTx3gHandler();
 
@@ -115,7 +116,11 @@ bool Codec::InitCodec(AVCodecParameters * codecpar) {
 
 Match Codec::match(const unsigned char *start, int maxlength) {
 	if(name == "rtp ") {
-		return rtpMatch(start, maxlength);
+		// Refactor step 7: dispatch via handler. RtpHandler::match calls
+		// back into Codec::rtpMatch, so behavior is identical. The static
+		// Codec::rtpMatch is still called from mp4.cpp's mdat scan and
+		// remains in place.
+		return handler->match(*this, start, maxlength);
 	} else if(name == "avc1") {
 		return avc1Match(start, maxlength);
 
