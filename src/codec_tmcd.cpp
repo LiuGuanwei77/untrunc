@@ -52,50 +52,45 @@ This entry contains a text item specifying the name of the source tape.
 using namespace std;
 
 namespace {
-// Refactor step 12: thin handler that delegates to Codec::tmcdMatch.
-// tmcdMatch reads codec.tmcd_seen (a Codec member); mp4.cpp also writes
-// that field directly (lines 1086, 1241, 1254, 1294), so the state stays
-// on Codec — the handler is purely a dispatch shim.
+// Refactor step 25: body inlined from the now-removed Codec::tmcdMatch.
+// Reads codec.tmcd_seen (a Codec member). The flag stays on Codec
+// because mp4.cpp writes it directly (in 4 places).
 struct TmcdHandler : CodecHandler {
 	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.tmcdMatch(start, maxlength);
+		Match match;
+
+		if(codec.tmcd_seen)
+			return match;
+
+		unsigned int timestamp = readBE<unsigned int>(start);
+
+		if( timestamp > 2592000)
+			match.chances = 0;
+		else {
+			match.length = 4;
+			match.chances = 1024;
+		}
+		return match;
+
+		/* This is how to read the time code IN THE STSD ATOM!, not here.
+		 * it is possible taht using this values we might guess which values are acceptable */
+
+	/*	uint32_t reserved = readBE<uint32_t>(start);
+
+		uint32_t flags = readBE<uint32_t>(start + 4);
+		uint32_t timescale = readBE<uint32_t>(start + 8);
+
+		//dunno what values are reasonable (might use the value from the other video though.
+		uint32_t frameduration = readBE<uint32_t>(start + 12);
+		uint8_t nframes = readBE<uint8_t>(start + 16);
+		uint8_t empty = readBE<uint8_t>(start + 17);
+	*/
+
+		return match;
 	}
 };
 } // namespace
 
 std::unique_ptr<CodecHandler> makeTmcdHandler() {
 	return std::unique_ptr<CodecHandler>(new TmcdHandler());
-}
-Match Codec::tmcdMatch(const unsigned char *start, int maxlength) {
-
-	Match match;
-
-	if(tmcd_seen)
-		return match;
-
-	unsigned int timestamp = readBE<unsigned int>(start);
-
-	if( timestamp > 2592000)
-		match.chances = 0;
-	else {
-		match.length = 4;
-		match.chances = 1024;
-	}
-	return match;
-
-	/* This is how to read the time code IN THE STSD ATOM!, not here.
-	 * it is possible taht using this values we might guess which values are acceptable */
-
-/*	uint32_t reserved = readBE<uint32_t>(start);
-
-	uint32_t flags = readBE<uint32_t>(start + 4);
-	uint32_t timescale = readBE<uint32_t>(start + 8);
-
-	//dunno what values are reasonable (might use the value from the other video though.
-	uint32_t frameduration = readBE<uint32_t>(start + 12);
-	uint8_t nframes = readBE<uint8_t>(start + 16);
-	uint8_t empty = readBE<uint8_t>(start + 17);
-*/
-
-	return match;
 }
