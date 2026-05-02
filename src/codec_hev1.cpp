@@ -4,20 +4,6 @@
 
 using namespace std;
 
-namespace {
-// Refactor step 13: thin handler that delegates to Codec::hev1Match.
-// Used for both "hev1" and "hvc1" codecs (the original Codec::match
-// dispatcher routed both names to hev1Match).
-struct Hev1Handler : CodecHandler {
-	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.hev1Match(start, maxlength);
-	}
-};
-} // namespace
-
-std::unique_ptr<CodecHandler> makeHev1Handler() {
-	return std::unique_ptr<CodecHandler>(new Hev1Handler());
-}
 
 /* H265 NAL unit types */
 enum {
@@ -72,7 +58,6 @@ public:
 
 
 
-
 // see avc1/nal.cpp for more detailed comments
 bool H265NalInfo::parseNal(const unsigned char *buffer, uint32_t maxlength) {
 
@@ -111,55 +96,65 @@ bool H265NalInfo::parseNal(const unsigned char *buffer, uint32_t maxlength) {
 }
 
 
-Match Codec::hev1Match(const unsigned char *start, int maxlength) {
-	Match match;
+namespace {
+// Refactor step 33: hev1Match body inlined here. Used for both "hev1"
+// and "hvc1" codec names. The function uses no Codec members; codec
+// ref is unused.
+struct Hev1Handler : CodecHandler {
+	Match match(Codec &, const unsigned char *start, int maxlength) override {
+		Match match;
 
-	const unsigned char *pos = start;
+		const unsigned char *pos = start;
 
-	H265NalInfo previous_nal;
+		H265NalInfo previous_nal;
 
-	while(1) {
-		H265NalInfo nal_info(pos, maxlength);
-		if(!nal_info.is_ok)
-			return match;
+		while(1) {
+			H265NalInfo nal_info(pos, maxlength);
+			if(!nal_info.is_ok)
+				return match;
 
-		if (nal_info.isKeyFrame())
-			match.keyframe = true;
+			if (nal_info.isKeyFrame())
+				match.keyframe = true;
 
-		if(nal_info.isSlice()) {
-			if (previous_nal.is_ok) {
-				if (nal_info.isInNewFrame ||
-					previous_nal.nuh_layer_id_ != nal_info.nuh_layer_id_){
+			if(nal_info.isSlice()) {
+				if (previous_nal.is_ok) {
+					if (nal_info.isInNewFrame ||
+						previous_nal.nuh_layer_id_ != nal_info.nuh_layer_id_){
+						return match;
+					}
+				}
+			} else switch(nal_info.nal_type_) {
+			case NAL_AUD: // Access unit delimiter
+				if (!previous_nal.is_ok)
+					break;
+				return match;
+			case NAL_FILLER_DATA:
+				break;
+			default:
+/*			vector<int> dont_warn = {20, 32, 33, 34, 39};
+				if (!contains(dont_warn, nal_info.nal_type_))
+					logg(W2, "unhandled nal_type: ", nal_info.nal_type_, "\n"); */
+				if (nal_info.is_forbidden_set_) {
 					return match;
 				}
-			}
-		} else switch(nal_info.nal_type_) {
-		case NAL_AUD: // Access unit delimiter
-			if (!previous_nal.is_ok)
 				break;
-			return match;
-		case NAL_FILLER_DATA:
-			break;
-		default:
-/*			vector<int> dont_warn = {20, 32, 33, 34, 39};
-			if (!contains(dont_warn, nal_info.nal_type_))
-				logg(W2, "unhandled nal_type: ", nal_info.nal_type_, "\n"); */
-			if (nal_info.is_forbidden_set_) {
-				return match;
 			}
-			break;
+
+			pos += nal_info.length_;
+			match.length += nal_info.length_;
+			maxlength -= nal_info.length_;
+			if (maxlength == 0)
+				return match;
+
+			previous_nal = nal_info;
+
+			match.chances = 1e10;
 		}
-
-		pos += nal_info.length_;
-		match.length += nal_info.length_;
-		maxlength -= nal_info.length_;
-		if (maxlength == 0)
-			return match;
-
-		previous_nal = nal_info;
-
-		match.chances = 1e10;
+		return match;
 	}
-	return match;
-}
+};
+} // namespace
 
+std::unique_ptr<CodecHandler> makeHev1Handler() {
+	return std::unique_ptr<CodecHandler>(new Hev1Handler());
+}
