@@ -23,6 +23,7 @@ public:
 // back to the existing Codec::xxxMatch / Codec::xxxSearch member function so
 // dispatch is byte-identical to the pre-refactor behavior.
 std::unique_ptr<CodecHandler> makeMbexHandler();
+std::unique_ptr<CodecHandler> makeMijdHandler();
 std::unique_ptr<CodecHandler> makeTextHandler();
 std::unique_ptr<CodecHandler> makeTx3gHandler();
 

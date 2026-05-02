@@ -1,8 +1,25 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 #include <string.h>
 
 using namespace std;
+
+namespace {
+// Refactor step 6: thin handler that delegates to Codec::mijdMatch (the
+// match function for the "priv" codec). Codec::mijdSearch exists but is
+// not currently dispatched from Codec::search, so the default empty
+// CodecHandler::search is fine here.
+struct MijdHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.mijdMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeMijdHandler() {
+	return std::unique_ptr<CodecHandler>(new MijdHandler());
+}
 /*  MIJD is a proprietary codec...
  *  it looks like it contains a couple of jpegs,
  * at offset 28 is the relative begin of the first image

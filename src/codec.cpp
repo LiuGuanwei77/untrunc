@@ -82,6 +82,7 @@ bool Codec::parse(Atom *trak) {
 	// through handler->match(); the rest fall through to the if/else dispatch
 	// in Codec::match below.
 	if(name == "mebx") handler = makeMbexHandler();
+	else if(name == "priv") handler = makeMijdHandler();
 	else if(name == "text") handler = makeTextHandler();
 	else if(name == "tx3g") handler = makeTx3gHandler();
 
@@ -149,7 +150,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 	} else if(name == "fdsc") {
 		return fdscMatch(start, maxlength);
 	} else if(name == "priv") {
-		return mijdMatch(start, maxlength);
+		// Refactor step 6: dispatch via handler. MijdHandler::match calls
+		// back into Codec::mijdMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if (name == "tx3g") {
 		// Refactor step 5: dispatch via handler. Tx3gHandler::match calls
 		// back into Codec::subtitleMatch, so behavior is identical.
