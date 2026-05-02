@@ -17,8 +17,11 @@ struct CammHandler : CodecHandler {
 	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
 		return codec.cammMatch(start, maxlength);
 	}
-	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.gpmdSearch(start, maxlength);
+	Match search(Codec &, const unsigned char *start, int maxlength) override {
+		// Calls the free gpmdSearch (declared in codec_handler.h) — preserves
+		// the pre-refactor quirk that camm's search routes through gpmd, not
+		// through Codec::cammSearch (which is dead code that remains in place).
+		return gpmdSearch(start, maxlength);
 	}
 };
 } // namespace

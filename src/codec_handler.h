@@ -19,6 +19,12 @@ public:
 	virtual Match search(Codec &codec, const unsigned char *start, int maxlength);
 };
 
+// Free helper shared between GpmdHandler::search and CammHandler::search.
+// Pre-refactor, both paths went through Codec::gpmdSearch (camm's search
+// dispatch in Codec::search routed through gpmd's, not cammSearch). Lifted
+// out so neither handler needs the Codec member function.
+Match gpmdSearch(const unsigned char *start, int maxlength);
+
 // Per-codec handler factories. During the migration, each handler delegates
 // back to the existing Codec::xxxMatch / Codec::xxxSearch member function so
 // dispatch is byte-identical to the pre-refactor behavior.
