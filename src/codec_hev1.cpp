@@ -1,7 +1,23 @@
 #include "codec.h"
+#include "codec_handler.h"
 
 
 using namespace std;
+
+namespace {
+// Refactor step 13: thin handler that delegates to Codec::hev1Match.
+// Used for both "hev1" and "hvc1" codecs (the original Codec::match
+// dispatcher routed both names to hev1Match).
+struct Hev1Handler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.hev1Match(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeHev1Handler() {
+	return std::unique_ptr<CodecHandler>(new Hev1Handler());
+}
 
 /* H265 NAL unit types */
 enum {
