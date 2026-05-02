@@ -27,6 +27,7 @@ void Codec::clear() {
 	incomplete_text_chunk = false;
 	mask1   = 0;
 	mask0   = 0;
+	handler.reset();
 }
 
 bool Codec::parse(Atom *trak) {
@@ -76,6 +77,13 @@ bool Codec::parse(Atom *trak) {
 		}
 
 	}
+
+	// Refactor step 3: install per-codec handler. Currently only "mebx" is
+	// migrated; all other codecs keep going through the if/else dispatch in
+	// Codec::match below. As more codecs are migrated, more branches here
+	// will be added.
+	if(name == "mebx") handler = makeMbexHandler();
+
 	return true;
 }
 
@@ -120,7 +128,9 @@ Match Codec::match(const unsigned char *start, int maxlength) {
 	} else if(name == "alac") {
 		return alacMatch(start, maxlength);
 	} else if(name == "mebx") {
-		return mbexMatch(start, maxlength);
+		// Refactor step 3: dispatch via handler. MbexHandler::match calls
+		// back into Codec::mbexMatch, so behavior is identical.
+		return handler->match(*this, start, maxlength);
 	} else if(name == "text") {
 		return textMatch(start, maxlength);
 	} else if(name == "apch") {

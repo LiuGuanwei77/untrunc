@@ -1,8 +1,24 @@
 #include "codec.h"
+#include "codec_handler.h"
 #include "log.h"
 #include <string.h>
 
 using namespace std;
+
+namespace {
+// Refactor step 3: thin handler that delegates to the existing
+// Codec::mbexMatch implementation. Behavior is unchanged; this just routes
+// the dispatch through the new strategy interface for the "mebx" codec.
+struct MbexHandler : CodecHandler {
+	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+		return codec.mbexMatch(start, maxlength);
+	}
+};
+} // namespace
+
+std::unique_ptr<CodecHandler> makeMbexHandler() {
+	return std::unique_ptr<CodecHandler>(new MbexHandler());
+}
 /* mbex is a codec for some editing data I cannot find documentation for.
  * for the few examples I got they are very small packets (8, 10, 100 bytes
  * large packets included crec and cist atoms.

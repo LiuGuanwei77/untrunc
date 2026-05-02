@@ -1,6 +1,8 @@
 #ifndef CODEC_HANDLER_H
 #define CODEC_HANDLER_H
 
+#include <memory>
+
 class Codec;
 struct Match;
 
@@ -16,5 +18,10 @@ public:
 	virtual Match match(Codec &codec, const unsigned char *start, int maxlength) = 0;
 	virtual Match search(Codec &codec, const unsigned char *start, int maxlength);
 };
+
+// Per-codec handler factories. During the migration, each handler delegates
+// back to the existing Codec::xxxMatch / Codec::xxxSearch member function so
+// dispatch is byte-identical to the pre-refactor behavior.
+std::unique_ptr<CodecHandler> makeMbexHandler();
 
 #endif // CODEC_HANDLER_H
