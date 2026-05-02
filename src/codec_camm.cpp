@@ -9,9 +9,10 @@
 using namespace std;
 
 namespace {
-// Refactor step 31: cammMatch body inlined here. The unused
-// Codec::cammSearch is left in place as dead code (never dispatched
-// even pre-refactor; CammHandler::search routes through gpmdSearch).
+// Refactor step 39: CammHandler holds the full camm logic. CammHandler::
+// search routes through the free gpmdSearch (preserving the pre-refactor
+// quirk that camm's search dispatch went through gpmd, not through the
+// long-dead Codec::cammSearch — which has now been removed).
 struct CammHandler : CodecHandler {
 	Match match(Codec &, const unsigned char *start, int maxlength) override {
 		Match match;
@@ -29,9 +30,6 @@ struct CammHandler : CodecHandler {
 		return match;
 	}
 	Match search(Codec &, const unsigned char *start, int maxlength) override {
-		// Calls the free gpmdSearch (declared in codec_handler.h) — preserves
-		// the pre-refactor quirk that camm's search routes through gpmd, not
-		// through Codec::cammSearch (which is dead code that remains in place).
 		return gpmdSearch(start, maxlength);
 	}
 };
@@ -39,21 +37,4 @@ struct CammHandler : CodecHandler {
 
 std::unique_ptr<CodecHandler> makeCammHandler() {
 	return std::unique_ptr<CodecHandler>(new CammHandler());
-}
-
-Match Codec::cammSearch(const unsigned char *start, int maxlength) {
-	Match match;
-	const unsigned char *end = start + maxlength - 8;
-	const  unsigned char *current = start;
-
-
-	while(current < end) {
-		if(start[0] == 0 && start[1] == 0 || start[3] == 0 && start[2] < 7) {
-			match.chances = 1<<20;
-			match.offset = current - start;
-			return match;
-		}
-		current++;
-	}
-	return match;
 }

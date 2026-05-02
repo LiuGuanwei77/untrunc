@@ -66,9 +66,6 @@ public:
 	Match search(const unsigned char *start, int maxlength);
 
 
-	Match cammSearch(const unsigned char *start, int maxlength);
-
-	Match mijdSearch(const unsigned char *start, int maxlength);
 
 
 

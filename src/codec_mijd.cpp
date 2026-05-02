@@ -17,11 +17,9 @@ using namespace std;
 */
 
 namespace {
-// Refactor step 24: body inlined from the now-removed Codec::mijdMatch.
-// MijdHandler holds no codec-specific state; the function uses no Codec
-// members, so the codec ref is unused. Codec::mijdSearch was never
-// dispatched from Codec::search even before the refactor, and is left
-// in place as dead code (preserving the original source).
+// Refactor step 39: MijdHandler holds the full priv/mijd logic. The
+// long-dead Codec::mijdSearch (never dispatched, even pre-refactor) has
+// been removed.
 struct MijdHandler : CodecHandler {
 	Match match(Codec &, const unsigned char *start, int maxlength) override {
 		Match match;
@@ -47,21 +45,4 @@ struct MijdHandler : CodecHandler {
 
 std::unique_ptr<CodecHandler> makeMijdHandler() {
 	return std::unique_ptr<CodecHandler>(new MijdHandler());
-}
-
-Match Codec::mijdSearch(const unsigned char *start, int maxlength) {
-	Match match;
-	const unsigned char *end = start + maxlength - 8;
-	const  unsigned char *current = start;
-	while(current < end) {
-		uint32_t word = *(uint32_t *)start;
-		if(!strncmp((char *)current, "mijd", 4) || word == 0x3030f800) {
-			match.offset = current - start;
-			match.chances  = 1e30;
-			return match;
-		}
-
-		current++;
-	}
-	return match;
 }
