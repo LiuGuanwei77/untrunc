@@ -68,9 +68,6 @@ public:
 //	//sometimes (maybe) rtp info is present without a track
 static	Match rtpMatch(const unsigned char *start, int maxlength);
 
-	Match avc1Match(const unsigned char *start, int maxlength);
-	Match avc1Search(const unsigned char *start, int maxlength);
-
 
 	Match cammSearch(const unsigned char *start, int maxlength);
 

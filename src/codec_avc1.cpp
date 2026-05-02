@@ -11,23 +11,6 @@ extern "C" {
 
 using namespace std;
 
-namespace {
-// Refactor step 17: thin handler that delegates to Codec::avc1Match and
-// Codec::avc1Search. avc1Match uses Codec::context (avcodec) and the
-// stats parsed off the avcC atom — accessed via the codec ref.
-struct Avc1Handler : CodecHandler {
-	Match match(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.avc1Match(start, maxlength);
-	}
-	Match search(Codec &codec, const unsigned char *start, int maxlength) override {
-		return codec.avc1Search(start, maxlength);
-	}
-};
-} // namespace
-
-std::unique_ptr<CodecHandler> makeAvc1Handler() {
-	return std::unique_ptr<CodecHandler>(new Avc1Handler());
-}
 
 class NalInfo {
  public:
@@ -301,284 +284,294 @@ bool NalInfo::getNalInfo(const H264sps& sps,
   return true;
 }
 
-Match Codec::avc1Search(const unsigned char* start, int maxlength) {
-  Match match;
-  for (int offset = 0; offset < maxlength - 8; offset++) {
-    if (start[offset] != 0)
-      continue;
-    uint32_t len = readBE<uint32_t>(start + offset);
-    // too might use smallestSample and largestSample to constrain the size
-    if (len < 8 || len > NalInfo::MaxAVC1Length)
-      continue;
-    // todo common values for 4 and 5 bytes should be usedc
-    // if(start[offset+4] != 0x41 || start[offset+5] != 0x9a ) continue;
-    if (start[offset + 4] & (1 << 7))
-      continue;
-    int nal_type = start[offset + 4] & 0x1f;
-    if (nal_type > 21)
-      continue;
-    // this looks like it might be a packet. might want to do a more thorough
-    // check.
-    match.offset = offset;
-    match.chances = 10;
-    return match;
-  }
-  return match;
-}
+namespace {
+// Refactor step 37: avc1Match and avc1Search bodies inlined here.
+// Match reads codec.context (avcodec) and codec.stats.beginnings32/64;
+// search uses no Codec members.
+struct Avc1Handler : CodecHandler {
+  Match match(Codec &codec, const unsigned char *start, int maxlength) override {
+    Match match;
 
-Match Codec::avc1Match(const unsigned char* start, int maxlength) {
-  Match match;
-
-  // This works only for a very specific kind of video.
-  //#define SPECIAL_VIDEO
+    // This works only for a very specific kind of video.
+    //#define SPECIAL_VIDEO
 #ifdef SPECIAL_VIDEO
-  int32_t s2 = readBE<int32_t>(start + 4);
-  if (s != 0x00000002 || (s2 != 0x09300000 && s2 != 0x09100000))
-    return false;
-  return true;
+    int32_t s2 = readBE<int32_t>(start + 4);
+    if (s != 0x00000002 || (s2 != 0x09300000 && s2 != 0x09100000))
+      return false;
+    return true;
 #endif
 
-  // First 4 bytes is the length the the packet and it's expected not to be
-  // bigger than 16M
-  if (start[0] != 0) {
-    //		Log::debug << "avc1: Match with 0 header.\n";
-    return match;
-  }
+    // First 4 bytes is the length the the packet and it's expected not to be
+    // bigger than 16M
+    if (start[0] != 0) {
+      //		Log::debug << "avc1: Match with 0 header.\n";
+      return match;
+    }
 
-  // NAL unit types
-  //  see: libavcodec/h264.h
-  //  see: ITU-T T-REC-H.264-201704, Table 7-1
-  // enum {
-  //     NAL_SLICE             =  1,  // Non keyframe.
-  //     NAL_DPA               =  2,
-  //     NAL_DPB               =  3,
-  //     NAL_DPC               =  4,
-  //     NAL_IDR_SLICE         =  5,  // Keyframe.
-  //     NAL_SEI               =  6,
-  //     NAL_SPS               =  7,
-  //     NAL_PPS               =  8,
-  //     NAL_AUD               =  9,
-  //     NAL_END_SEQUENCE      = 10,
-  //     NAL_END_STREAM        = 11,
-  //     NAL_FILLER_DATA       = 12,
-  //     NAL_SPS_EXT           = 13,
-  //     NAL_PREFIX            = 14,
-  //     NAL_SUB_SPS           = 15,
-  //     NAL_DPS               = 16,
-  //     NAL_AUXILIARY_SLICE   = 19,best
-  //     NAL_EXTEN_SLICE       = 20,
-  //     NAL_DEPTH_EXTEN_SLICE = 21,
-  //
-  //     NAL_FF_IGNORE         = 0xff0f001,
-  // };
-  //
-  // First 4 bytes are the length, then the NAL starts.
-  // ref_idc != 0 per unit_type = 5
-  // ref_idc == 0 per unit_type = 6, 9, 10, 11, 12
+    // NAL unit types
+    //  see: libavcodec/h264.h
+    //  see: ITU-T T-REC-H.264-201704, Table 7-1
+    // enum {
+    //     NAL_SLICE             =  1,  // Non keyframe.
+    //     NAL_DPA               =  2,
+    //     NAL_DPB               =  3,
+    //     NAL_DPC               =  4,
+    //     NAL_IDR_SLICE         =  5,  // Keyframe.
+    //     NAL_SEI               =  6,
+    //     NAL_SPS               =  7,
+    //     NAL_PPS               =  8,
+    //     NAL_AUD               =  9,
+    //     NAL_END_SEQUENCE      = 10,
+    //     NAL_END_STREAM        = 11,
+    //     NAL_FILLER_DATA       = 12,
+    //     NAL_SPS_EXT           = 13,
+    //     NAL_PREFIX            = 14,
+    //     NAL_SUB_SPS           = 15,
+    //     NAL_DPS               = 16,
+    //     NAL_AUXILIARY_SLICE   = 19,best
+    //     NAL_EXTEN_SLICE       = 20,
+    //     NAL_DEPTH_EXTEN_SLICE = 21,
+    //
+    //     NAL_FF_IGNORE         = 0xff0f001,
+    // };
+    //
+    // First 4 bytes are the length, then the NAL starts.
+    // ref_idc != 0 per unit_type = 5
+    // ref_idc == 0 per unit_type = 6, 9, 10, 11, 12
 
-  // See 7.4.1.2.4 Detection of the first VCL NAL unit of a primary coded
-  // picture
-  //  for rules on how to group NALs into a picture.
+    // See 7.4.1.2.4 Detection of the first VCL NAL unit of a primary coded
+    // picture
+    //  for rules on how to group NALs into a picture.
 
-  int64_t begin32 = readBE<int32_t>(start);
-  if (begin32 == 0)
-    return match;
+    int64_t begin32 = readBE<int32_t>(start);
+    if (begin32 == 0)
+      return match;
 
-  // TODO: Use the first byte of the NAL: forbidden bit and type!
-  int nal_type = (start[4] & 0x1f);
+    // TODO: Use the first byte of the NAL: forbidden bit and type!
+    int nal_type = (start[4] & 0x1f);
 
-  if (nal_type == 0)
-    return match;
-  // The other values are really uncommon on cameras...
-  if (nal_type > 12) {
-    Log::debug << "avc1: No match because of NAL type: " << nal_type << '\n';
-    return match;
-  }
-  if (nal_type > 29) {
-    // if(nal_type != 1 && !(nal_type >= 5 && nal_type <= 12)) {
-    Log::debug << "avc1: No match because of NAL type: " << nal_type << '\n';
-    return match;
-  }
+    if (nal_type == 0)
+      return match;
+    // The other values are really uncommon on cameras...
+    if (nal_type > 12) {
+      Log::debug << "avc1: No match because of NAL type: " << nal_type << '\n';
+      return match;
+    }
+    if (nal_type > 29) {
+      // if(nal_type != 1 && !(nal_type >= 5 && nal_type <= 12)) {
+      Log::debug << "avc1: No match because of NAL type: " << nal_type << '\n';
+      return match;
+    }
 
-  if (!context) {
-    Log::error << "avc1: No context" << nal_type << '\n';
-    return match;
-  }
+    if (!codec.context) {
+      Log::error << "avc1: No context" << nal_type << '\n';
+      return match;
+    }
 
-  // XXX: Horrible Hack: Referencing unstable, internal data structures. XXX
-  H264sps sps;
-  if (!initH264sps(&sps, context->priv_data)) {
-    Log::debug << "Could not retrieve SPS.\n";
-    return match;
-  }
+    // XXX: Horrible Hack: Referencing unstable, internal data structures. XXX
+    H264sps sps;
+    if (!initH264sps(&sps, codec.context->priv_data)) {
+      Log::debug << "Could not retrieve SPS.\n";
+      return match;
+    }
 
 #if 0
-	int consumed = -1;
-	{
-		AvLog useAvLog();
-		AVFrame *frame = av_frame_alloc();
-		if (!frame)
-			throw string("Could not create AVFrame");
-		AVPacket avp;
-		av_init_packet(&avp);
-		avp.data = start;
-		avp.size = maxlength;
-		int got_frame = 0;
-		consumed = avcodec_decode_video2(context, frame, &got_frame, &avp);
-		if (consumed == 0) {
-			// Flush decoder to receive buffered packets.
-			clog << "Flush " << name << " decoder.\n";
-			got_frame = 0;
-			av_packet_unref(&avp);
-			av_frame_unref(frame);
-			int consumed2 = avcodec_decode_video2(context, frame, &got_frame, &avp);
-			if (consumed2 >= 0)
-				consumed = consumed2;
-		}
-		av_packet_unref(&avp);
-		av_frame_free(&frame);
-	}
+    int consumed = -1;
+    {
+      AvLog useAvLog();
+      AVFrame *frame = av_frame_alloc();
+      if (!frame)
+        throw string("Could not create AVFrame");
+      AVPacket avp;
+      av_init_packet(&avp);
+      avp.data = start;
+      avp.size = maxlength;
+      int got_frame = 0;
+      consumed = avcodec_decode_video2(context, frame, &got_frame, &avp);
+      if (consumed == 0) {
+        // Flush decoder to receive buffered packets.
+        clog << "Flush " << name << " decoder.\n";
+        got_frame = 0;
+        av_packet_unref(&avp);
+        av_frame_unref(frame);
+        int consumed2 = avcodec_decode_video2(context, frame, &got_frame, &avp);
+        if (consumed2 >= 0)
+          consumed = consumed2;
+      }
+      av_packet_unref(&avp);
+      av_frame_free(&frame);
+    }
 
-	return consumed;
+    return consumed;
 #endif
 
-  uint32_t length = 0;
-  const unsigned char* pos = start;
+    uint32_t length = 0;
+    const unsigned char* pos = start;
 
-  NalInfo previous;
-  bool seen_slice = false;
+    NalInfo previous;
+    bool seen_slice = false;
 
-  bool first_pack = true;
-  while (true) {
-    NalInfo info;
-    bool ok = info.getNalInfo(sps, maxlength, pos);
-    if (!ok) {
-      // THIS should never happens, but it happens
-      if (first_pack) {
-        // throw string("What's ahppinghin egherklhj HELP!");
-        match.chances = 0.0f;
-        if (info.length == 0) {
-          NalInfo info1;
+    bool first_pack = true;
+    while (true) {
+      NalInfo info;
+      bool ok = info.getNalInfo(sps, maxlength, pos);
+      if (!ok) {
+        // THIS should never happens, but it happens
+        if (first_pack) {
+          // throw string("What's ahppinghin egherklhj HELP!");
+          match.chances = 0.0f;
+          if (info.length == 0) {
+            NalInfo info1;
 
-          info1.getNalInfo(sps, maxlength, pos);
+            info1.getNalInfo(sps, maxlength, pos);
+            return match;
+          }
           return match;
         }
-        return match;
+        goto final;
       }
-      goto final;
-    }
-    match.chances = 1024;
+      match.chances = 1024;
 
-    first_pack = false;
+      first_pack = false;
 
-    Log::debug << "Nal type: " << info.nal_type << " Nal ref idc "
-               << info.ref_idc << endl;
+      Log::debug << "Nal type: " << info.nal_type << " Nal ref idc "
+                 << info.ref_idc << endl;
 
-    switch (info.nal_type) {
-      case 12:
-        break;  // filler data
-      case 1:
-      case 5:
-        if (!seen_slice) {
-          previous = info;
-          seen_slice = true;
-        } else {
-          // Check for changes.
-          // cout << "Frame number: " << info.frame_num << endl;
-          if (previous.frame_num != info.frame_num) {
-            Log::debug << "Different frame number.\n";
-            goto final;
-          }
-          if (previous.pps_id != info.pps_id) {
-            Log::debug << "Different pic parameter set id.\n";
-            goto final;
-          }
-          // All these conditions are listed in the docs, but
-          // it looks like it creates invalid packets if respected.
-          // Puzzling.
-          //#define STRICT_NAL_INFO_CHECKING  1
+      switch (info.nal_type) {
+        case 12:
+          break;  // filler data
+        case 1:
+        case 5:
+          if (!seen_slice) {
+            previous = info;
+            seen_slice = true;
+          } else {
+            // Check for changes.
+            // cout << "Frame number: " << info.frame_num << endl;
+            if (previous.frame_num != info.frame_num) {
+              Log::debug << "Different frame number.\n";
+              goto final;
+            }
+            if (previous.pps_id != info.pps_id) {
+              Log::debug << "Different pic parameter set id.\n";
+              goto final;
+            }
+            // All these conditions are listed in the docs, but
+            // it looks like it creates invalid packets if respected.
+            // Puzzling.
+            //#define STRICT_NAL_INFO_CHECKING  1
 //#define STRICT_FIELD_PIC_CHECKING
 #ifdef STRICT_FIELD_PIC_CHECKING
-          if (previous.field_pic_flag != info.field_pic_flag) {
-            Log::debug << "Different field  pic flag.\n";
-            goto final;
-          }
-          if (previous.field_pic_flag && info.field_pic_flag &&
-              previous.bottom_pic_flag != info.bottom_pic_flag) {
-            Log::debug << "Different bottom pic flag.\n";
-            goto final;
-          }
+            if (previous.field_pic_flag != info.field_pic_flag) {
+              Log::debug << "Different field  pic flag.\n";
+              goto final;
+            }
+            if (previous.field_pic_flag && info.field_pic_flag &&
+                previous.bottom_pic_flag != info.bottom_pic_flag) {
+              Log::debug << "Different bottom pic flag.\n";
+              goto final;
+            }
 #endif
 
 #define STRICT_REF_IDC_CHECKING
 #ifdef STRICT_REF_IDC_CHECKING
-          if (previous.ref_idc != info.ref_idc) {
-            Log::debug << "Different ref idc.\n";
-            goto final;
-          }
+            if (previous.ref_idc != info.ref_idc) {
+              Log::debug << "Different ref idc.\n";
+              goto final;
+            }
 #endif
 
-          //#define STRICT_POC_TYPE_CHECKING
+            //#define STRICT_POC_TYPE_CHECKING
 #ifdef STRICT_POC_TYPE_CHECKING
-          if (previous.poc_type == 0 && info.poc_type == 0 &&
-              previous.poc_lsb != info.poc_lsb) {
-            Log::debug << "Different pic order count lsb (poc lsb).\n";
-            goto final;
-          }
+            if (previous.poc_type == 0 && info.poc_type == 0 &&
+                previous.poc_lsb != info.poc_lsb) {
+              Log::debug << "Different pic order count lsb (poc lsb).\n";
+              goto final;
+            }
 #endif
-          if (previous.idr_pic_flag != info.idr_pic_flag) {
-            Log::debug << "Different NAL type (5, 1).\n";
-            // TODO check this was an error and not on purpouse.
-            goto final;
-          }
-          //#define STRICT_PIC_IDR_CHECKING
+            if (previous.idr_pic_flag != info.idr_pic_flag) {
+              Log::debug << "Different NAL type (5, 1).\n";
+              // TODO check this was an error and not on purpouse.
+              goto final;
+            }
+            //#define STRICT_PIC_IDR_CHECKING
 #ifdef STRICT_PIC_IDR_CHECKING
-          if (previous.idr_pic_flag == 1 && info.idr_pic_flag == 1 &&
-              previous.idr_pic_id != info.idr_pic_id) {
-            Log::debug << "Different idr pic id for keyframe.\n";
+            if (previous.idr_pic_flag == 1 && info.idr_pic_flag == 1 &&
+                previous.idr_pic_id != info.idr_pic_id) {
+              Log::debug << "Different idr pic id for keyframe.\n";
+              goto final;
+            }
+#endif
+          }
+          break;
+        default:
+          if (seen_slice) {
+            Log::debug << "New access unit since seen picture.\n";
             goto final;
           }
-#endif
-        }
-        break;
-      default:
-        if (seen_slice) {
-          Log::debug << "New access unit since seen picture.\n";
-          goto final;
-        }
-        break;
+          break;
+      }
+      if (info.nal_type == 5) {
+        match.keyframe = true;
+        Log::debug << "KeyFrame!" << endl;
+      }
+      pos += info.length;
+      length += info.length;
+      maxlength -= info.length;
+      // Log::debug << "Partial length : " << length << '\n';
     }
-    if (info.nal_type == 5) {
-      match.keyframe = true;
-      Log::debug << "KeyFrame!" << endl;
-    }
-    pos += info.length;
-    length += info.length;
-    maxlength -= info.length;
-    // Log::debug << "Partial length : " << length << '\n';
-  }
 final:
-  match.length = length;
-  // probability depends on length, the longer the higher.
-  match.chances = 1 + length / 10;
-  if (maxlength < 8)
+    match.length = length;
+    // probability depends on length, the longer the higher.
+    match.chances = 1 + length / 10;
+    if (maxlength < 8)
+      return match;
+
+    float stat_chanches = 0;
+    if (codec.stats.beginnings32.count(begin32))
+      stat_chanches = codec.stats.beginnings32[begin32];
+    else {
+      // TODO this actually depends by the number of different beginnings.
+      // changes = (n -1); //se sono due le chanches sono davvero piccole.
+      stat_chanches = codec.stats.beginnings32.size() - 1;
+    }
+
+    int64_t begin64 = readBE<int64_t>(start);
+    if (codec.stats.beginnings64.count(begin64))
+      stat_chanches = codec.stats.beginnings64[begin64];
+
+    match.chances = std::max(stat_chanches, match.chances);
+
+    Log::flush();
     return match;
-
-  float stat_chanches = 0;
-  if (stats.beginnings32.count(begin32))
-    stat_chanches = stats.beginnings32[begin32];
-  else {
-    // TODO this actually depends by the number of different beginnings.
-    // changes = (n -1); //se sono due le chanches sono davvero piccole.
-    stat_chanches = stats.beginnings32.size() - 1;
   }
+  Match search(Codec &, const unsigned char* start, int maxlength) override {
+    Match match;
+    for (int offset = 0; offset < maxlength - 8; offset++) {
+      if (start[offset] != 0)
+        continue;
+      uint32_t len = readBE<uint32_t>(start + offset);
+      // too might use smallestSample and largestSample to constrain the size
+      if (len < 8 || len > NalInfo::MaxAVC1Length)
+        continue;
+      // todo common values for 4 and 5 bytes should be usedc
+      // if(start[offset+4] != 0x41 || start[offset+5] != 0x9a ) continue;
+      if (start[offset + 4] & (1 << 7))
+        continue;
+      int nal_type = start[offset + 4] & 0x1f;
+      if (nal_type > 21)
+        continue;
+      // this looks like it might be a packet. might want to do a more thorough
+      // check.
+      match.offset = offset;
+      match.chances = 10;
+      return match;
+    }
+    return match;
+  }
+};
+} // namespace
 
-  int64_t begin64 = readBE<int64_t>(start);
-  if (stats.beginnings64.count(begin64))
-    stat_chanches = stats.beginnings64[begin64];
-
-  match.chances = std::max(stat_chanches, match.chances);
-
-  Log::flush();
-  return match;
+std::unique_ptr<CodecHandler> makeAvc1Handler() {
+  return std::unique_ptr<CodecHandler>(new Avc1Handler());
 }
